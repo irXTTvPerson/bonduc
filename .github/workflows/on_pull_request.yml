@@ -1,0 +1,36 @@
+name: CI on pull request
+
+on:
+  pull_request:
+    types: [opened, reopened, review_requested]
+    branches: [ "develop", "stage" ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{github.head_ref}}
+
+      - name: run flontend test
+        run: |
+          cd src/fe/web
+          npm install
+          npm run lint
+          npm run build
+          cd ../../../
+          
+
+      - name: run backend test
+        run: |
+          cd src/be/web
+          npm install
+          npm run lint
+          npm run test
+          npm run test:e2e
+          npm run build
+          cd ../../../
