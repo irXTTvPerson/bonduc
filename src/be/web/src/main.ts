@@ -1,8 +1,8 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
-
+import { Config } from "./config";
 async function bootstrap() {
-  if (process.env.BONDUC_ENV === "local") {
+  if (Config.isLocalEnv) {
     console.log(`[start up] BONDUC_ENV: ${process.env.BONDUC_ENV}`);
     const app = await NestFactory.create(AppModule, {
       logger: ["debug", "verbose", "log", "warn", "error"]

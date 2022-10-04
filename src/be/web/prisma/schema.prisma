@@ -16,5 +16,5 @@ model DraftAccount {
   password   String
   address    String   @unique
   family     String
-  token      String
+  token      String   @unique
 }

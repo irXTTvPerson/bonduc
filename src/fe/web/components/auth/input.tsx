@@ -1,7 +1,7 @@
 import type { NextPage } from "next"
 import { useState } from "react"
 import { useForm, SubmitHandler } from "react-hook-form"
-import { Props } from "../../pages/register"
+import { Props } from "../../pages/auth/register/draft"
 
 type Inputs = {
   email: string

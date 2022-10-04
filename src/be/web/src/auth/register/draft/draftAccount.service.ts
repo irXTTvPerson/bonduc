@@ -1,52 +1,61 @@
 import { Injectable } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
 import { prisma } from "../../../lib/prisma";
-import { randomBytes } from "crypto";
+import { randomUUID, createHash } from "crypto";
+import { Config } from "../../../config";
+import { EmailService } from "../../../email/email.service";
+import { subject, body } from "./registrationMailTemplate";
+
+const hasAlgo = "sha3-512";
+const encoding = "hex";
+
+type DraftAccount = {
+  address: string;
+  family: string;
+  email: string;
+  password: string;
+};
+
+export const isValidPost = (body: any): body is DraftAccount => {
+  return "address" in body && "family" in body && "email" in body && "password" in body;
+};
 
 @Injectable()
 export class DraftAccountService {
   private readonly logger = new Logger("DraftAccountService");
 
-  async hasDraftAccount(address: string, family: string) {
-    try {
-      const res = await prisma.draftAccount.findUnique({
-        where: {
-          address: address
-        }
-      });
-      this.logger.log(
-        `hasDraftAccount: {address: ${address}, family: ${family}} => ${res ? "exist" : "null"}`
-      );
-      if (res) {
-        return 204;
-      } else {
-        return 404;
-      }
-    } catch (e) {
-      return 500;
-    }
-  }
+  constructor(private readonly email: EmailService) {}
 
-  async registerDraftAccount(address: string, family: string, email: string, password: string) {
+  async registerDraftAccount(args: DraftAccount) {
+    const token = randomUUID();
+    const hash = createHash(hasAlgo);
+    args.password = hash.update(args.password).digest(encoding);
     try {
-      const token = randomBytes(64).toString("hex");
-      await prisma.draftAccount.create({
-        data: {
-          address: address,
-          email: email,
-          family: family,
-          password: password,
-          token: token
-        }
-      });
-      this.logger.log(
-        `registerDraftAccount: {address: ${address}, family: ${family}, email: ${email}, password: ${password}} account created`
-      );
-
-      return 204;
+      await prisma.draftAccount.create({ data: { ...args, token: token } });
+      this.logger.log(`draft account created`, args);
     } catch (e) {
       this.logger.error(`registerDraftAccount: failed due to ${e}`);
       return 409;
     }
+
+    if (Config.isLocalEnv) {
+      this.logger.log(`token is ${token}`);
+    } else {
+      const { error } = await this.email.send(args.email, subject, body(token));
+      if (error) {
+        this.logger.error(`sending email failed due to ${error}`);
+        try {
+          await prisma.draftAccount.delete({ where: { ...args } });
+        } catch (e) {
+          this.logger.error(`failed delete DraftAccount due to ${e}`);
+        } finally {
+          return 500;
+        }
+      } else {
+        this.logger.log(`email has sent to ${args.email}`);
+      }
+    }
+
+    return 204;
   }
 }
