@@ -33,6 +33,21 @@ export class DraftAccountService {
   constructor(private readonly email: EmailService) {}
 
   async registerDraftAccount(args: DraftAccount) {
+    try {
+      const account = await prisma.account.findUnique({
+        where: { identifier_name: args.identifier_name }
+      });
+      if (account) {
+        this.logger.warn(
+          `registerDraftAccount: already the Account identifier_name: ${args.identifier_name} has taken`
+        );
+        return 409;
+      }
+    } catch (e) {
+      this.logger.error(`registerDraftAccount: failed due to ${e}`);
+      return 500;
+    }
+
     const token = randomUUID();
     const hash = createHash(hasAlgo);
     args.password = hash.update(args.password).digest(encoding);
@@ -40,10 +55,13 @@ export class DraftAccountService {
       const ret = await prisma.draftAccount.create({ data: { ...args, token: token } });
       this.logger.log(`draft account created`, ret);
     } catch (e) {
-      this.logger.error(`registerDraftAccount: failed due to ${e}`);
       if (e?.code === "P2002") {
-        return 409; // failed register due to unique constraint, already the account has registered
+        this.logger.warn(
+          `registerDraftAccount: already the DraftAccount identifier_name: ${args.identifier_name} has registered`
+        );
+        return 409; // failed register due to unique constraint, already the DraftAccount has registered
       } else {
+        this.logger.error(`registerDraftAccount: failed due to ${e}`);
         return 500; // idk
       }
     }

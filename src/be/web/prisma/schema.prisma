@@ -20,3 +20,14 @@ model DraftAccount {
   screen_name     String
   identifier_name String   @unique
 }
+
+model Account {
+  id              String    @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at      DateTime  @default(now())
+  updated_at      DateTime? @updatedAt
+  email           String    @unique
+  password        String
+  ip_address      Json
+  screen_name     String
+  identifier_name String    @unique
+}
