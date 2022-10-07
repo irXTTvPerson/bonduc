@@ -11,10 +11,12 @@ datasource db {
 }
 
 model DraftAccount {
-  created_at DateTime @default(now())
-  email      String   @unique
-  password   String
-  address    String   @unique
-  family     String
-  token      String   @unique
+  created_at      DateTime @default(now())
+  email           String   @unique
+  password        String
+  address         String   @unique
+  family          String
+  token           String   @unique
+  screen_name     String
+  identifier_name String   @unique
 }

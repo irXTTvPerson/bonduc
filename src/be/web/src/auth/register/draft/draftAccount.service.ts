@@ -14,11 +14,17 @@ type DraftAccount = {
   family: string;
   email: string;
   password: string;
+  screen_name: string;
+  identifier_name: string;
 };
 
-export const isValidPost = (body: any): body is DraftAccount => {
-  return "address" in body && "family" in body && "email" in body && "password" in body;
-};
+export const isValidPost = (body: any): body is DraftAccount =>
+  "address" in body &&
+  "family" in body &&
+  "email" in body &&
+  "password" in body &&
+  "screen_name" in body &&
+  "identifier_name" in body;
 
 @Injectable()
 export class DraftAccountService {
@@ -31,11 +37,15 @@ export class DraftAccountService {
     const hash = createHash(hasAlgo);
     args.password = hash.update(args.password).digest(encoding);
     try {
-      await prisma.draftAccount.create({ data: { ...args, token: token } });
-      this.logger.log(`draft account created`, args);
+      const ret = await prisma.draftAccount.create({ data: { ...args, token: token } });
+      this.logger.log(`draft account created`, ret);
     } catch (e) {
       this.logger.error(`registerDraftAccount: failed due to ${e}`);
-      return 409;
+      if (e?.code === "P2002") {
+        return 409; // failed register due to unique constraint, already the account has registered
+      } else {
+        return 500; // idk
+      }
     }
 
     if (Config.isLocalEnv) {

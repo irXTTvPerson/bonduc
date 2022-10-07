@@ -8,6 +8,8 @@ type Inputs = {
   password: string
   address: string
   family: string
+  screen_name: string
+  identifier_name: string
 }
 
 const Input: NextPage<Props> = (props: Props) => {
@@ -50,14 +52,25 @@ const Input: NextPage<Props> = (props: Props) => {
     <>
       <form onSubmit={handleSubmit(onSubmit)}>
         <div>
+          <div>email:</div>
           <input type="text" {...register("email", { required: true })} />
-          {errors.email && <div>This field is required</div>}
         </div>
         <div>
+          <div>password:</div>
           <input type="password" {...register("password", { required: true })} />
-          {errors.password && <div>This field is required</div>}
+        </div>
+        <div>
+          <div>screen_name:</div>
+          <input type="text" {...register("screen_name", { required: true })} />
+        </div>
+        <div>
+          <div>identifer_name:</div>
+          <input type="text" {...register("identifier_name", { required: true })} />
         </div>
         <input type="submit" />
+        {(errors.email || errors.password || errors.screen_name || errors.identifier_name) && (
+          <div>all fields are required</div>
+        )}
       </form>
       <div>{message}</div>
     </>
