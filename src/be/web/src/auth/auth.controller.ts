@@ -39,7 +39,7 @@ export class AuthController {
       res.status(400).send();
       return;
     }
-    const status = await this.draftAccountService.registerDraftAccount(req.body);
+    const status = await this.draftAccountService.register(req.body);
     res.status(status).send();
   }
 
@@ -53,7 +53,7 @@ export class AuthController {
       res.status(400).send();
       return;
     }
-    const status = await this.registerService.RegisterAccount(token as string);
+    const status = await this.registerService.register(token as string);
     res.status(status).send();
   }
 
@@ -66,7 +66,7 @@ export class AuthController {
       res.status(400).send();
       return;
     }
-    const status = await this.unregisterService.Unregister(req.body);
+    const status = await this.unregisterService.unregister(req.body);
     res.status(status).send();
   }
 }

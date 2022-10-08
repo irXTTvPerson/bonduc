@@ -32,7 +32,7 @@ export class DraftAccountService {
 
   constructor(private readonly email: EmailService) {}
 
-  async registerDraftAccount(args: DraftAccount) {
+  async register(args: DraftAccount) {
     try {
       const account = await prisma.account.findUnique({
         where: { identifier_name: args.identifier_name }

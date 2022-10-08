@@ -6,7 +6,7 @@ import { prisma } from "../../lib/prisma";
 export class RegisterService {
   private readonly logger = new Logger("RegisterService");
 
-  async RegisterAccount(token: string) {
+  async register(token: string) {
     try {
       const draft = await prisma.draftAccount.findUnique({ where: { token: token } });
       if (!draft) {

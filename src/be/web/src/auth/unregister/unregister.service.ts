@@ -19,7 +19,7 @@ export const isValidPost = (body: any): body is DeleteRequest =>
 export class UnregisterService {
   private readonly logger = new Logger("UnegisterService");
 
-  async Unregister(args: DeleteRequest) {
+  async unregister(args: DeleteRequest) {
     const hash = createHash(hasAlgo);
     args.password = hash.update(args.password).digest(encoding);
     try {
