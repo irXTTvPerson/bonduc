@@ -1,8 +1,12 @@
-import { Controller, Logger, Header, Post, Get, Options, Req, Res } from "@nestjs/common";
+import { Controller, Logger, Header, Post, Get, Delete, Options, Req, Res } from "@nestjs/common";
 import { DraftAccountService, isValidPost } from "./register/draft/draftAccount.service";
 import { RegisterService } from "./register/register.service";
 import { Request, Response } from "express";
 import { Config } from "../config";
+import {
+  UnregisterService,
+  isValidPost as UnregisterRequest
+} from "./unregister/unregister.service";
 
 @Controller("auth")
 export class AuthController {
@@ -10,7 +14,8 @@ export class AuthController {
 
   constructor(
     private readonly draftAccountService: DraftAccountService,
-    private readonly registerService: RegisterService
+    private readonly registerService: RegisterService,
+    private readonly unregisterService: UnregisterService
   ) {}
 
   @Options("register/draft")
@@ -49,6 +54,19 @@ export class AuthController {
       return;
     }
     const status = await this.registerService.RegisterAccount(token as string);
+    res.status(status).send();
+  }
+
+  @Delete("unregister")
+  @Header("Access-Control-Allow-Origin", Config.feEndpoint)
+  async unregisterAccount(@Req() req: Request, @Res() res: Response): Promise<void> {
+    this.logger.log(`[DELETE] ${req.path} (${req.ip})`);
+    if (!UnregisterRequest(req.body)) {
+      this.logger.warn(`[DELETE] invalid body in ${req.path} (${req.ip})`, req.body);
+      res.status(400).send();
+      return;
+    }
+    const status = await this.unregisterService.Unregister(req.body);
     res.status(status).send();
   }
 }
