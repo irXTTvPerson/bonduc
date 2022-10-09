@@ -12,6 +12,9 @@ __[required]__ バックエンドのエンドポイントを```http://hoge.com:1
 
 ## be/web
 
+### JWT_SECRET_TOKEN
+__[required]__ jwtの秘密鍵トークン。十分長いランダム文字列であるべき。
+
 ### FE_WEB_URL
 __[required]__ フロントエンドのエンドポイントを```http://hoge.com:1234```形式で記述する
 

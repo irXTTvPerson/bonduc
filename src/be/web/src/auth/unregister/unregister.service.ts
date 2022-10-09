@@ -1,10 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
 import { prisma } from "../../lib/prisma";
-import { createHash } from "crypto";
-
-const hasAlgo = "sha3-512";
-const encoding = "hex";
+import { hash } from "../../lib/hash";
 
 export type DeleteRequest = {
   email: string;
@@ -20,8 +17,7 @@ export class UnregisterService {
   private readonly logger = new Logger("UnegisterService");
 
   async unregister(args: DeleteRequest) {
-    const hash = createHash(hasAlgo);
-    args.password = hash.update(args.password).digest(encoding);
+    args.password = hash(args.password);
     try {
       const account = await prisma.account.findUnique({
         where: { identifier_name: args.identifier_name }

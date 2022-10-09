@@ -1,12 +1,25 @@
-import { Controller, Logger, Header, Post, Get, Delete, Options, Req, Res } from "@nestjs/common";
+import {
+  Controller,
+  Logger,
+  Header,
+  Post,
+  Get,
+  Delete,
+  Options,
+  Req,
+  Res,
+  UseGuards
+} from "@nestjs/common";
 import { DraftAccountService, isValidPost } from "./register/draft/draftAccount.service";
 import { RegisterService } from "./register/register.service";
 import { Request, Response } from "express";
 import { Config } from "../config";
+import { AuthGuard } from "@nestjs/passport";
 import {
   UnregisterService,
   isValidPost as UnregisterRequest
 } from "./unregister/unregister.service";
+import { AuthService, Payload } from "./auth.service";
 
 @Controller("auth")
 export class AuthController {
@@ -15,7 +28,8 @@ export class AuthController {
   constructor(
     private readonly draftAccountService: DraftAccountService,
     private readonly registerService: RegisterService,
-    private readonly unregisterService: UnregisterService
+    private readonly unregisterService: UnregisterService,
+    private readonly authService: AuthService
   ) {}
 
   @Options("register/draft")
@@ -28,6 +42,14 @@ export class AuthController {
   preflight(@Req() req: Request, @Res() res: Response) {
     this.logger.log(`[OPTIONS] ${req.path} (${req.ip})`);
     res.status(204).send();
+  }
+
+  @UseGuards(AuthGuard("local"))
+  @Post("login")
+  @Header("Access-Control-Allow-Origin", Config.feEndpoint)
+  async login(@Req() req: Request) {
+    this.logger.log(`[POST] ${req.path} (${req.ip})`);
+    return this.authService.login(req.user as Payload);
   }
 
   @Post("register/draft")
