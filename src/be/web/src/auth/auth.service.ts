@@ -17,13 +17,18 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<Payload | null> {
     password = hash(password);
     this.logger.verbose(`validateUser: email: ${email} password: ${password}`);
-    const account = await prisma.account.findUnique({ where: { email: email } });
-    if (!account) {
-      this.logger.warn(`validateUser: account ${email} not found`);
-      return null;
-    }
-    if (account.password !== password) {
-      this.logger.warn(`validateUser: password incorrect`);
+    try {
+      const account = await prisma.account.findUnique({ where: { email: email } });
+      if (!account) {
+        this.logger.warn(`validateUser: account ${email} not found`);
+        return null;
+      }
+      if (account.password !== password) {
+        this.logger.warn(`validateUser: password incorrect`);
+        return null;
+      }
+    } catch (e) {
+      this.logger.error(`validateUser: failed due to ${e}`);
       return null;
     }
     this.logger.verbose(`validate success`);
