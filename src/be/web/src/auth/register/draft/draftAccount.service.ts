@@ -34,12 +34,15 @@ export class DraftAccountService {
 
   async register(args: DraftAccount) {
     try {
-      const account = await prisma.account.findUnique({
+      const em = await prisma.account.findUnique({
+        where: { email: args.email }
+      });
+      const id = await prisma.account.findUnique({
         where: { identifier_name: args.identifier_name }
       });
-      if (account) {
+      if (em || id) {
         this.logger.warn(
-          `registerDraftAccount: already the Account identifier_name: ${args.identifier_name} has taken`
+          `registerDraftAccount: already the Account email: ${args.email}, identifier_name: ${args.identifier_name} has taken`
         );
         return 409;
       }
