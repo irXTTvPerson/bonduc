@@ -32,7 +32,7 @@ export class AuthController {
     private readonly authService: AuthService
   ) {}
 
-  @Options("register/draft")
+  @Options("*")
   @Header("Access-Control-Allow-Origin", Config.feEndpoint)
   @Header(
     "Access-Control-Allow-Headers",
