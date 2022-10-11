@@ -26,7 +26,8 @@ const Login: NextPage = () => {
         },
         method: "POST",
         body: JSON.stringify(data),
-        mode: "cors"
+        mode: "cors",
+        credentials: "include"
       })
 
       if (res.ok) {

@@ -33,6 +33,9 @@ __[required]__ aws sdkのアクセストークン
 ### AWS_SECRET_ACCESS_KEY
 __[required]__ aws sdkのアクセストークン
 
+### COOKIE_SECRET_TOKEN
+__[required]__ 署名つきCookieのトークン。十分長いランダム文字列であるべき。
+
 ## inf/postgres
 
 ### POSTGRES_PASSWORD

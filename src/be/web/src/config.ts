@@ -21,5 +21,16 @@ export const Config = {
   crypto: {
     hashAlgo: "sha3-512",
     encoding: "hex"
+  },
+
+  cookie: {
+    secret: process.env.COOKIE_SECRET_TOKEN,
+    expireDate: 7,
+
+    settings: {
+      httpOnly: true,
+      secure: true,
+      signed: true
+    }
   }
 };
