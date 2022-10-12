@@ -9,9 +9,20 @@ import { RegisterService } from "./register/register.service";
 import { DraftAccountService } from "./register/draft/draftAccount.service";
 import { EmailService } from "../email/email.service";
 import { UnregisterService } from "./unregister/unregister.service";
+import { prisma } from "../lib/prisma";
 
 describe("AuthService", () => {
   let service: AuthService;
+
+  const validData = {
+    ip_address: ["127.0.0.1"],
+    email: "a@b.com",
+    // password on sha3-512
+    password:
+      "e9a75486736a550af4fea861e2378305c4a555a05094dee1dca2f68afea49cc3a50e8de6ea131ea521311f4d6fb054a146e8282f8e35ff2e6368c1a62e909716",
+    screen_name: "screen",
+    identifier_name: "identifier"
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -36,7 +47,50 @@ describe("AuthService", () => {
     service = module.get<AuthService>(AuthService);
   });
 
-  it("should be defined", () => {
-    expect(service).toBeDefined();
+  describe("Valid", () => {
+    beforeEach(async () => {
+      await prisma.draftAccount.deleteMany();
+      await prisma.account.deleteMany();
+    });
+
+    afterEach(async () => {
+      await prisma.draftAccount.deleteMany();
+      await prisma.account.deleteMany();
+    });
+
+    it("normal", async () => {
+      await prisma.account.create({ data: validData });
+      const ret = await service.validateUser(validData.email, "password");
+      expect(ret).not.toBeNull();
+    });
+  });
+
+  describe("Should be Error", () => {
+    beforeEach(async () => {
+      await prisma.draftAccount.deleteMany();
+      await prisma.account.deleteMany();
+    });
+
+    afterEach(async () => {
+      await prisma.draftAccount.deleteMany();
+      await prisma.account.deleteMany();
+    });
+
+    it("account not found", async () => {
+      const ret = await service.validateUser(validData.email, "password");
+      expect(ret).toBeNull();
+    });
+
+    it("invalid password", async () => {
+      await prisma.account.create({ data: validData });
+      const ret = await service.validateUser(validData.email, "password0");
+      expect(ret).toBeNull();
+    });
+
+    it("invalid email", async () => {
+      await prisma.account.create({ data: validData });
+      const ret = await service.validateUser(validData.email + "hoge", "password");
+      expect(ret).toBeNull();
+    });
   });
 });
