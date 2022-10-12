@@ -1,12 +1,33 @@
-import { Controller, Logger, Header, Post, Get, Delete, Options, Req, Res } from "@nestjs/common";
+import {
+  Controller,
+  Logger,
+  Header,
+  Post,
+  Get,
+  Delete,
+  Options,
+  Req,
+  Res,
+  UseGuards,
+  applyDecorators
+} from "@nestjs/common";
 import { DraftAccountService, isValidPost } from "./register/draft/draftAccount.service";
 import { RegisterService } from "./register/register.service";
-import { Request, Response } from "express";
+import { Request, Response, CookieOptions } from "express";
 import { Config } from "../config";
+import { AuthGuard } from "@nestjs/passport";
 import {
   UnregisterService,
   isValidPost as UnregisterRequest
 } from "./unregister/unregister.service";
+import { AuthService, Payload } from "./auth.service";
+
+const AccessControlHeaderCommon = () => {
+  return applyDecorators(
+    Header("Access-Control-Allow-Origin", Config.feEndpoint),
+    Header("Access-Control-Allow-Credentials", "true")
+  );
+};
 
 @Controller("auth")
 export class AuthController {
@@ -15,18 +36,34 @@ export class AuthController {
   constructor(
     private readonly draftAccountService: DraftAccountService,
     private readonly registerService: RegisterService,
-    private readonly unregisterService: UnregisterService
+    private readonly unregisterService: UnregisterService,
+    private readonly authService: AuthService
   ) {}
 
-  @Options("register/draft")
-  @Header("Access-Control-Allow-Origin", Config.feEndpoint)
+  @Options("*")
   @Header(
     "Access-Control-Allow-Headers",
     "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept"
   )
   @Header("Access-Control-Allow-Methods", "DELETE, OPTIONS")
+  @AccessControlHeaderCommon()
   preflight(@Req() req: Request, @Res() res: Response) {
     this.logger.log(`[OPTIONS] ${req.path} (${req.ip})`);
+    res.status(204).send();
+  }
+
+  @UseGuards(AuthGuard("local"))
+  @Post("login")
+  @AccessControlHeaderCommon()
+  async login(@Req() req: Request, @Res() res: Response) {
+    this.logger.log(`[POST] ${req.path} (${req.ip})`);
+    const token = await this.authService.login(req.user as Payload);
+    const date = new Date();
+    date.setDate(date.getDate() + Config.cookie.expireDate);
+    res.cookie("session", token.access_token, {
+      expires: date,
+      ...(Config.cookie.settings as CookieOptions)
+    });
     res.status(204).send();
   }
 

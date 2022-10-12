@@ -1,13 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
 import { prisma } from "../../../lib/prisma";
-import { randomUUID, createHash } from "crypto";
+import { randomUUID } from "crypto";
 import { Config } from "../../../config";
 import { EmailService } from "../../../email/email.service";
 import { subject, body } from "./registrationMailTemplate";
-
-const hasAlgo = "sha3-512";
-const encoding = "hex";
+import { hash } from "../../../lib/hash";
 
 type DraftAccount = {
   address: string;
@@ -52,8 +50,7 @@ export class DraftAccountService {
     }
 
     const token = randomUUID();
-    const hash = createHash(hasAlgo);
-    args.password = hash.update(args.password).digest(encoding);
+    args.password = hash(args.password);
     try {
       const ret = await prisma.draftAccount.create({ data: { ...args, token: token } });
       this.logger.log(`draft account created`, ret);

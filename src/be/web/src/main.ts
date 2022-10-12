@@ -1,17 +1,21 @@
 import { NestFactory } from "@nestjs/core";
+import { INestApplication } from "@nestjs/common/interfaces";
 import { AppModule } from "./app.module";
 import { Config } from "./config";
+import * as cookieParser from "cookie-parser";
+
 async function bootstrap() {
+  console.log(`[start up] BONDUC_ENV: ${process.env.BONDUC_ENV}`);
+  let app: INestApplication = null;
   if (Config.isLocalEnv) {
-    console.log(`[start up] BONDUC_ENV: ${process.env.BONDUC_ENV}`);
-    const app = await NestFactory.create(AppModule, {
+    app = await NestFactory.create(AppModule, {
       logger: ["debug", "verbose", "log", "warn", "error"]
     });
-    await app.listen(3333);
   } else {
-    console.log(`[start up] BONDUC_ENV: ${process.env.BONDUC_ENV}`);
-    const app = await NestFactory.create(AppModule, { logger: ["log", "warn", "error"] });
-    await app.listen(3333);
+    app = await NestFactory.create(AppModule, { logger: ["log", "warn", "error"] });
   }
+
+  app.use(cookieParser(Config.cookie.secret));
+  await app.listen(3333);
 }
 bootstrap();

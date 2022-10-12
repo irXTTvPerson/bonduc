@@ -11,5 +11,26 @@ export const Config = {
     confirmationEmailFrom: process.env.AWS_CONFIRMATION_EMAIL_FROM,
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  },
+
+  jwt: {
+    secret: process.env.JWT_SECRET_TOKEN,
+    expire: "7d"
+  },
+
+  crypto: {
+    hashAlgo: "sha3-512",
+    encoding: "hex"
+  },
+
+  cookie: {
+    secret: process.env.COOKIE_SECRET_TOKEN,
+    expireDate: 7,
+
+    settings: {
+      httpOnly: true,
+      secure: true,
+      signed: true
+    }
   }
 };
