@@ -32,5 +32,11 @@ export const Config = {
       secure: true,
       signed: true
     }
+  },
+
+  limit: {
+    pods: {
+      find_at_once: 100
+    }
   }
 };
