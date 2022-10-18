@@ -1,5 +1,4 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { EmailService } from "../../email/email.service";
 import { AuthController } from "../auth.controller";
 import { DraftAccountService } from "../register/draft/draftAccount.service";
 import { RegisterService } from "../register/register.service";
@@ -37,7 +36,6 @@ describe("UnregisterService", () => {
         RegisterService,
         DraftAccountService,
         UnregisterService,
-        EmailService,
         AuthService,
         LocalStrategy
       ]

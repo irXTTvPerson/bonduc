@@ -3,9 +3,9 @@ import { Logger } from "@nestjs/common";
 import { prisma } from "../../../lib/prisma";
 import { randomUUID } from "crypto";
 import { Config } from "../../../config";
-import { EmailService } from "../../../email/email.service";
 import { subject, body } from "./registrationMailTemplate";
 import { hash } from "../../../lib/hash";
+import { sendEmail } from "../../../lib/sendEmail";
 
 type DraftAccount = {
   address: string;
@@ -27,8 +27,6 @@ export const isValidPost = (body: any): body is DraftAccount =>
 @Injectable()
 export class DraftAccountService {
   private readonly logger = new Logger("DraftAccountService");
-
-  constructor(private readonly email: EmailService) {}
 
   async register(args: DraftAccount) {
     try {
@@ -69,7 +67,7 @@ export class DraftAccountService {
     if (Config.isLocalEnv) {
       this.logger.log(`token is ${token}`);
     } else {
-      const { error } = await this.email.send(args.email, subject, body(token));
+      const { error } = await sendEmail(args.email, subject, body(token));
       if (error) {
         this.logger.error(`sending email failed due to ${error}`);
         try {

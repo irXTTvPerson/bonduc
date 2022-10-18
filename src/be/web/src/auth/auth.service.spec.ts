@@ -7,7 +7,6 @@ import { Config } from "../config";
 import { AuthController } from "./auth.controller";
 import { RegisterService } from "./register/register.service";
 import { DraftAccountService } from "./register/draft/draftAccount.service";
-import { EmailService } from "../email/email.service";
 import { UnregisterService } from "./unregister/unregister.service";
 import { prisma } from "../lib/prisma";
 
@@ -38,7 +37,6 @@ describe("AuthService", () => {
         RegisterService,
         DraftAccountService,
         UnregisterService,
-        EmailService,
         AuthService,
         LocalStrategy
       ]
