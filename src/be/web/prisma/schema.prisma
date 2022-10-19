@@ -31,3 +31,13 @@ model Account {
   screen_name     String
   identifier_name String    @unique
 }
+
+model Pod {
+  id              String    @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at      DateTime  @default(now())
+  updated_at      DateTime? @updatedAt
+  to              Json
+  cc              Json?
+  from_account_id String
+  body            String
+}
