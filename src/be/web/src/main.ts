@@ -17,6 +17,12 @@ async function bootstrap() {
   }
 
   app.use(cookieParser(Config.cookie.secret));
+  app.enableCors({
+    origin: Config.feEndpoint,
+    methods: "DELETE, OPTIONS",
+    credentials: true,
+    allowedHeaders: "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept"
+  });
   await app.listen(3333);
 }
 bootstrap();

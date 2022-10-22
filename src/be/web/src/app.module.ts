@@ -15,7 +15,11 @@ import { PodResolver } from "./pod/pod.resolver";
       driver: ApolloDriver,
       debug: Config.isLocalEnv ? true : false,
       playground: Config.isLocalEnv ? true : false,
-      autoSchemaFile: join(process.cwd(), "src/schema.gql")
+      autoSchemaFile: join(process.cwd(), "src/schema.gql"),
+      cors: {
+        origin: Config.feEndpoint,
+        credentials: true
+      }
     })
   ],
   providers: [PodResolver]
