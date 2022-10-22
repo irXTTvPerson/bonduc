@@ -4,7 +4,7 @@ export const Config = {
   isStageEnv: process.env.BONDUC_ENV === "stage",
   isProdEnv: process.env.BONDUC_ENV === "prod",
 
-  feEndpoint: process.env.FE_WEB_URL,
+  feEndpoint: process.env.NEXT_PUBLIC_FE_WEB_URL,
 
   aws: {
     region: process.env.AWS_REGION,
