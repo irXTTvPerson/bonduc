@@ -6,6 +6,7 @@ import { hash } from "../lib/hash";
 
 export type Payload = {
   token: string;
+  identifier_name: string;
 };
 
 @Injectable()
@@ -16,6 +17,7 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<Payload | null> {
     password = hash(password);
+    let identifier_name: string;
     this.logger.verbose(`validateUser: email: ${email} password: ${password}`);
     try {
       const account = await prisma.account.findUnique({ where: { email: email } });
@@ -27,19 +29,22 @@ export class AuthService {
         this.logger.warn(`validateUser: password incorrect`);
         return null;
       }
+      identifier_name = account.identifier_name;
     } catch (e) {
       this.logger.error(`validateUser: failed due to ${e}`);
       return null;
     }
     this.logger.verbose(`validate success`);
     return {
-      token: hash(randomUUID())
+      token: randomUUID(),
+      identifier_name: identifier_name
     };
   }
 
   async login(args: Payload) {
     const ret = {
-      access_token: this.jwtService.sign(args)
+      access_token: this.jwtService.sign(args),
+      identifier_name: args.identifier_name
     };
     this.logger.verbose(`login: `, ret);
     return ret;

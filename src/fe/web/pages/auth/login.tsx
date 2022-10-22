@@ -32,6 +32,8 @@ const Login: NextPage = () => {
 
       if (res.ok) {
         updateMessage("login success")
+        const ret = await res.json()
+        localStorage.setItem("identifier_name", ret.identifier_name)
       } else {
         console.log(res.statusText)
         updateMessage("request failed.")
