@@ -3,13 +3,13 @@ import HTL from "../components/timeline/htl"
 import styles from "../styles/Home.module.css"
 
 type Props = {
-  session: string | undefined
+  session: string | null
 }
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
   return {
     props: {
-      session: ctx.req.cookies["session"]
+      session: ctx.req.cookies["session"] || null
     }
   }
 }
