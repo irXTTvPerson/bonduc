@@ -6,6 +6,20 @@ import { JwtPayload, GqlAuthGuard } from "../auth/gql.strategy";
 import { UseGuards } from "@nestjs/common";
 import { Payload } from "../auth/auth.service";
 
+const selectCond = {
+  id: true,
+  created_at: true,
+  to: true,
+  cc: true,
+  body: true,
+  from: {
+    select: {
+      screen_name: true,
+      identifier_name: true
+    }
+  }
+};
+
 @Resolver(Pod)
 export class PodResolver {
   @Query(() => Pod, { nullable: true })
@@ -32,19 +46,7 @@ export class PodResolver {
           created_at: gt ? { gt: created_at } : lt ? { lt: created_at } : created_at
         }
       },
-      select: {
-        id: true,
-        created_at: true,
-        to: true,
-        cc: true,
-        body: true,
-        from: {
-          select: {
-            screen_name: true,
-            identifier_name: true
-          }
-        }
-      },
+      select: selectCond,
       take: Config.limit.pods.find_at_once
     });
   }
@@ -74,7 +76,8 @@ export class PodResolver {
         to: to,
         cc: cc,
         body: body
-      }
+      },
+      select: selectCond
     });
   }
 }
