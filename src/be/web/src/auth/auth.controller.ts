@@ -32,7 +32,7 @@ export class AuthController {
       expires: date,
       ...(Config.cookie.settings as CookieOptions)
     });
-    res.status(200).send({ identifier_name: token.identifier_name });
+    res.status(204).send();
   }
 
   @Post("register/draft")

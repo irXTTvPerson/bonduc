@@ -2,8 +2,9 @@ import { Resolver, Query, Args, Mutation } from "@nestjs/graphql";
 import { Pod } from "./pod.model";
 import { prisma } from "../lib/prisma";
 import { Config } from "../config";
-import { GqlAuthGuard } from "../auth/gql.strategy";
+import { JwtPayload, GqlAuthGuard } from "../auth/gql.strategy";
 import { UseGuards } from "@nestjs/common";
+import { Payload } from "../auth/auth.service";
 
 @Resolver(Pod)
 export class PodResolver {
@@ -51,14 +52,25 @@ export class PodResolver {
   @Mutation(() => Pod, { nullable: true })
   @UseGuards(GqlAuthGuard)
   async createPod(
-    @Args("account_id", { type: () => String }) account_id: string,
+    @JwtPayload() payload: Payload,
     @Args("body", { type: () => String }) body: string,
     @Args("to", { type: () => [String] }) to: string[],
     @Args("cc", { type: () => [String], nullable: "itemsAndList" }) cc?: string[]
   ) {
+    const a = await prisma.account.findUnique({
+      where: {
+        identifier_name: payload.identifier_name
+      },
+      select: {
+        id: true
+      }
+    });
+    if (!a) {
+      return null;
+    }
     return await prisma.pod.create({
       data: {
-        account_id: account_id,
+        account_id: a.id,
         to: to,
         cc: cc,
         body: body

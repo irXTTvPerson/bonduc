@@ -43,8 +43,7 @@ export class AuthService {
 
   async login(args: Payload) {
     const ret = {
-      access_token: this.jwtService.sign(args),
-      identifier_name: args.identifier_name
+      access_token: this.jwtService.sign(args)
     };
     this.logger.verbose(`login: `, ret);
     return ret;
