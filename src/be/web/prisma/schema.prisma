@@ -30,14 +30,16 @@ model Account {
   ip_address      Json
   screen_name     String
   identifier_name String    @unique
+  Pod             Pod[]
 }
 
 model Pod {
-  id              String    @id @unique @default(dbgenerated("gen_random_uuid()"))
-  created_at      DateTime  @default(now())
-  updated_at      DateTime? @updatedAt
-  to              Json
-  cc              Json?
-  from_account_id String
-  body            String
+  id         String    @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at DateTime  @default(now())
+  updated_at DateTime? @updatedAt
+  to         Json
+  cc         Json?
+  from       Account   @relation(fields: [account_id], references: [id])
+  body       String
+  account_id String
 }

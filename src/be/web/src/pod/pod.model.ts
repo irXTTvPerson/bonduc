@@ -1,4 +1,5 @@
 import { Field, ObjectType } from "@nestjs/graphql";
+import { Account } from "../account/account.model";
 
 @ObjectType()
 export class Pod {
@@ -17,8 +18,8 @@ export class Pod {
   @Field(() => [String], { nullable: "itemsAndList" })
   cc?: string[];
 
-  @Field()
-  from_account_id: string;
+  @Field(() => Account, { nullable: true })
+  from: Account;
 
   @Field()
   body: string;

@@ -9,6 +9,10 @@ const queryHTL = `
     cc
     to
     id
+    from {
+      identifier_name
+      screen_name
+    }
   }
 }
 `
@@ -16,6 +20,7 @@ const queryHTL = `
 const timelineTemplate = (pod: any) => (
   <article key={pod.id}>
     <section>{pod.created_at}</section>
+    <section>{pod.from.screen_name}</section>
     <section>{pod.id}</section>
     <section>{pod.body}</section>
   </article>

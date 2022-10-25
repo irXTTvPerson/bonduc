@@ -31,6 +31,19 @@ export class PodResolver {
           created_at: gt ? { gt: created_at } : lt ? { lt: created_at } : created_at
         }
       },
+      select: {
+        id: true,
+        created_at: true,
+        to: true,
+        cc: true,
+        body: true,
+        from: {
+          select: {
+            screen_name: true,
+            identifier_name: true
+          }
+        }
+      },
       take: Config.limit.pods.find_at_once
     });
   }
@@ -38,14 +51,14 @@ export class PodResolver {
   @Mutation(() => Pod, { nullable: true })
   @UseGuards(GqlAuthGuard)
   async createPod(
-    @Args("from_account_id", { type: () => String }) from_account_id: string,
+    @Args("account_id", { type: () => String }) account_id: string,
     @Args("body", { type: () => String }) body: string,
     @Args("to", { type: () => [String] }) to: string[],
     @Args("cc", { type: () => [String], nullable: "itemsAndList" }) cc?: string[]
   ) {
     return await prisma.pod.create({
       data: {
-        from_account_id: from_account_id,
+        account_id: account_id,
         to: to,
         cc: cc,
         body: body
