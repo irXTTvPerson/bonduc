@@ -11,6 +11,7 @@ import { Config } from "../../config";
 import { prisma } from "../../lib/prisma";
 import { randomUUID } from "crypto";
 import { hash } from "../../lib/hash";
+import { execSync } from "child_process";
 
 describe("RegisterService", () => {
   let service: RegisterService;
@@ -51,15 +52,8 @@ describe("RegisterService", () => {
   });
 
   describe("Valid", () => {
-    beforeEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
-
-    afterEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
+    beforeEach(async () => execSync("npx prisma migrate reset --force"));
+    afterEach(async () => execSync("npx prisma migrate reset --force"));
 
     it("normal", async () => {
       const ac = await prisma.draftAccount.create({ data: validData });
@@ -75,15 +69,8 @@ describe("RegisterService", () => {
   });
 
   describe("Should be Error", () => {
-    beforeEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
-
-    afterEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
+    beforeEach(async () => execSync("npx prisma migrate reset --force"));
+    afterEach(async () => execSync("npx prisma migrate reset --force"));
 
     it("can't create Account without DraftAccount", async () => {
       const token = hash(randomUUID());

@@ -9,6 +9,7 @@ import { RegisterService } from "./register/register.service";
 import { DraftAccountService } from "./register/draft/draftAccount.service";
 import { UnregisterService } from "./unregister/unregister.service";
 import { prisma } from "../lib/prisma";
+import { execSync } from "child_process";
 
 describe("AuthService", () => {
   let service: AuthService;
@@ -46,15 +47,8 @@ describe("AuthService", () => {
   });
 
   describe("Valid", () => {
-    beforeEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
-
-    afterEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
+    beforeEach(async () => execSync("npx prisma migrate reset --force"));
+    afterEach(async () => execSync("npx prisma migrate reset --force"));
 
     it("normal", async () => {
       await prisma.account.create({ data: validData });
@@ -64,15 +58,8 @@ describe("AuthService", () => {
   });
 
   describe("Should be Error", () => {
-    beforeEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
-
-    afterEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
+    beforeEach(async () => execSync("npx prisma migrate reset --force"));
+    afterEach(async () => execSync("npx prisma migrate reset --force"));
 
     it("account not found", async () => {
       const ret = await service.validateUser(validData.email, "password");

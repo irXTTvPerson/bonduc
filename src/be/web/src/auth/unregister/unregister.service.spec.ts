@@ -10,6 +10,7 @@ import { Config } from "../../config";
 import { prisma } from "../../lib/prisma";
 import { hash } from "../../lib/hash";
 import { UnregisterService } from "./unregister.service";
+import { execSync } from "child_process";
 
 describe("UnregisterService", () => {
   let service: UnregisterService;
@@ -45,15 +46,8 @@ describe("UnregisterService", () => {
   });
 
   describe("Valid", () => {
-    beforeEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
-
-    afterEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
+    beforeEach(async () => execSync("npx prisma migrate reset --force"));
+    afterEach(async () => execSync("npx prisma migrate reset --force"));
 
     it("normal", async () => {
       const d = Object.assign({}, validData);
