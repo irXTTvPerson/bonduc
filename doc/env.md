@@ -5,6 +5,9 @@
 ### BONDUC_ENV
 __[required]__ 次の開発環境のどれかをさす：local, dev, stage, prod
 
+### NEXT_PUBLIC_FE_WEB_URL
+__[required]__ フロントエンドのエンドポイントを```http://hoge.com:1234```形式で記述する。表向きのbonducのドメインでもある
+
 ## fe/web
 
 ### NEXT_PUBLIC_BE_WEB_URL
@@ -14,9 +17,6 @@ __[required]__ バックエンドのエンドポイントを```http://hoge.com:1
 
 ### JWT_SECRET_TOKEN
 __[required]__ jwtの秘密鍵トークン。十分長いランダム文字列であるべき。
-
-### FE_WEB_URL
-__[required]__ フロントエンドのエンドポイントを```http://hoge.com:1234```形式で記述する
 
 ### DATABASE_URL
 __[required]__ DBのエンドポイントを```postgresql://user:password@localhost:5432/bonduc?schema=public```形式で記述する

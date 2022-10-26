@@ -6,6 +6,7 @@ import * as cookieParser from "cookie-parser";
 
 async function bootstrap() {
   console.log(`[start up] BONDUC_ENV: ${process.env.BONDUC_ENV}`);
+  console.log(`[start up] config`, Config);
   let app: INestApplication = null;
   if (Config.isLocalEnv) {
     app = await NestFactory.create(AppModule, {
@@ -16,6 +17,12 @@ async function bootstrap() {
   }
 
   app.use(cookieParser(Config.cookie.secret));
+  app.enableCors({
+    origin: Config.feEndpoint,
+    methods: "DELETE, OPTIONS",
+    credentials: true,
+    allowedHeaders: "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept"
+  });
   await app.listen(3333);
 }
 bootstrap();

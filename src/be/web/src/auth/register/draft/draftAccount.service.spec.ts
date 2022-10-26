@@ -1,6 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { AuthController } from "../../auth.controller";
-import { EmailService } from "../../../email/email.service";
 import { DraftAccountService } from "./draftAccount.service";
 import { RegisterService } from "../register.service";
 import { UnregisterService } from "../../unregister/unregister.service";
@@ -12,6 +11,7 @@ import { Config } from "../../../config";
 import { prisma } from "../../../lib/prisma";
 import { randomUUID } from "crypto";
 import { hash } from "../../../lib/hash";
+import { execSync } from "child_process";
 
 describe("DraftAccountService", () => {
   let service: DraftAccountService;
@@ -43,7 +43,6 @@ describe("DraftAccountService", () => {
         DraftAccountService,
         RegisterService,
         UnregisterService,
-        EmailService,
         AuthService,
         LocalStrategy
       ]
@@ -53,15 +52,8 @@ describe("DraftAccountService", () => {
   });
 
   describe("Valid", () => {
-    beforeEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
-
-    afterEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
+    beforeEach(async () => execSync("npx prisma migrate reset --force"));
+    afterEach(async () => execSync("npx prisma migrate reset --force"));
 
     it("normal", async () => {
       const ret = await service.register(validData);
@@ -101,15 +93,8 @@ describe("DraftAccountService", () => {
   });
 
   describe("Should be Error", () => {
-    beforeEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
-
-    afterEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
+    beforeEach(async () => execSync("npx prisma migrate reset --force"));
+    afterEach(async () => execSync("npx prisma migrate reset --force"));
 
     it("can't create same data", async () => {
       let ret = await service.register(validData);

@@ -3,6 +3,7 @@ import { INestApplication } from "@nestjs/common";
 import * as request from "supertest";
 import { AppModule } from "./../src/app.module";
 import { prisma } from "../src/lib/prisma";
+import { execSync } from "child_process";
 
 describe("AppController (e2e)", () => {
   let app: INestApplication;
@@ -36,15 +37,8 @@ describe("AppController (e2e)", () => {
   });
 
   describe("Valid", () => {
-    beforeEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
-
-    afterEach(async () => {
-      await prisma.draftAccount.deleteMany();
-      await prisma.account.deleteMany();
-    });
+    beforeEach(async () => execSync("npx prisma migrate reset --force"));
+    afterEach(async () => execSync("npx prisma migrate reset --force"));
 
     it("POST /auth/register/draft register draft", async () => {
       return request(app.getHttpServer())
