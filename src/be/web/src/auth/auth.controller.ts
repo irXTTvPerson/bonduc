@@ -23,7 +23,7 @@ export class AuthController {
 
   @UseGuards(AuthGuard("local"))
   @Post("login")
-  async login(@Req() req: Request, @Res() res: Response) {
+  async login(@Req() req, @Res() res) {
     this.logger.log(`[POST] ${req.path} (${req.ip})`);
     const token = await this.authService.login(req.user as Payload);
     const date = new Date();
