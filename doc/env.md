@@ -36,6 +36,9 @@ __[required]__ aws sdkのアクセストークン
 ### COOKIE_SECRET_TOKEN
 __[required]__ 署名つきCookieのトークン。十分長いランダム文字列であるべき。
 
+### CORS_ORIGIN
+__[required]__ corsで期待するoriginを```http://hoge.com:1234```形式で記述する
+
 ## inf/postgres
 
 ### POSTGRES_PASSWORD
