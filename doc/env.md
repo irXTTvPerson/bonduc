@@ -51,6 +51,8 @@ __[required]__ 署名つきCookieのトークン。十分長いランダム文�
 ### CORS_ORIGIN
 __[required]__ corsで期待するoriginを```http://hoge.com:1234```形式で記述する
 
+nginxをfeの前段に置く場合はnginxをoriginに指定する
+
 ## inf/postgres
 
 ### POSTGRES_PASSWORD
