@@ -2,6 +2,19 @@ version: "3"
 
 services:
 
+  nginx:
+    restart: always
+    image: nginx:latest
+    env_file:
+      - ./src/inf/ngx/.env
+    ports:
+      - "8888:80"
+    networks:
+      - internal
+    volumes:
+      - ./.docker_volumes/ngx/log:/var/log/nginx/
+      - ./src/inf/ngx/:/etc/nginx/
+
   postgres:
     restart: always
     image: postgres:latest
