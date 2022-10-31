@@ -21,6 +21,7 @@
 
 ## docker
 
+- node_modulesやビルド生成物など一旦削除する
 - docker-compose build
 - docker-compose up
 

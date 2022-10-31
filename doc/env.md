@@ -18,6 +18,8 @@ docker上のコンテナ間通信では、beは```http://fe:3000```のようにh
 ### NEXT_PUBLIC_BE_WEB_URL
 __[required]__ バックエンドのエンドポイントを```http://hoge.com:1234```形式で記述する
 
+dockerビルド時は```http://localhost:8888/b```などnginxのbeに向ける
+
 ### NEXT_PUBLIC_BE_WEB_URL_ON_SSR
 __[required]__ バックエンドのエンドポイントを```http://hoge.com:1234```形式で記述する
 
