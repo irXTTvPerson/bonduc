@@ -1,0 +1,4 @@
+dist
+schema.gql
+node_modules
+*.env

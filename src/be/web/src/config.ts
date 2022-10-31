@@ -5,6 +5,7 @@ export const Config = {
   isProdEnv: process.env.BONDUC_ENV === "prod",
 
   feEndpoint: process.env.NEXT_PUBLIC_FE_WEB_URL,
+  corsOrigin: process.env.CORS_ORIGIN,
 
   aws: {
     region: process.env.AWS_REGION,

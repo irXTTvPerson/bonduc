@@ -17,7 +17,7 @@ import { PodResolver } from "./pod/pod.resolver";
       playground: Config.isLocalEnv ? true : false,
       autoSchemaFile: join(process.cwd(), "src/schema.gql"),
       cors: {
-        origin: Config.feEndpoint,
+        origin: Config.corsOrigin,
         credentials: true
       }
     })

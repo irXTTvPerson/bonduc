@@ -1,18 +1,9 @@
 import type { NextPage, GetServerSideProps } from "next"
 import styles from "../../styles/Auth.module.css"
 
-type Result = {
-  success: boolean
+type Props = {
+  message: "invalid token" | "failed fetching" | "got fetch exception" | "success"
 }
-
-type Error = {
-  error: boolean
-  what: any
-}
-
-type Props = Result | Error
-
-const isInvalid = (props: Props): props is Error => "error" in props
 
 export const getServerSideProps: GetServerSideProps<Props> = async (
   ctx
@@ -21,53 +12,45 @@ export const getServerSideProps: GetServerSideProps<Props> = async (
   if (!token) {
     return {
       props: {
-        error: true,
-        what: "query is invalid"
+        message: "invalid token"
       }
     }
   }
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BE_WEB_URL}/auth/register?token=${token}`, {
-      method: "GET",
-      mode: "cors"
-    })
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BE_WEB_URL_ON_SSR}/auth/register?token=${token}`,
+      {
+        method: "GET",
+        mode: "cors"
+      }
+    )
     if (!res.ok) {
       return {
         props: {
-          error: true,
-          what: `server returned ${res.status}`
+          message: "failed fetching"
         }
       }
     }
   } catch (e) {
     return {
       props: {
-        error: true,
-        what: e
+        message: "got fetch exception"
       }
     }
   }
 
   return {
     props: {
-      success: true
+      message: "success"
     }
   }
 }
 
 const Register: NextPage<Props> = (props: Props) => {
-  if (isInvalid(props)) {
-    return (
-      <div className={styles.container}>
-        <main className={styles.main}>🤔❓{props.what}</main>
-      </div>
-    )
-  }
-
   return (
     <div className={styles.container}>
-      <main className={styles.main}>👑registered✨</main>
+      <main className={styles.main}>{props.message}</main>
     </div>
   )
 }

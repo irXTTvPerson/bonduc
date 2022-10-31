@@ -18,3 +18,11 @@
 - awsでsesをセットアップする
   - create identity(Identity type: email address)
   - ses accountはsandboxにありverified email以外に送信できない制限があるのでAccount dashboardからRequest production accessする
+
+## docker
+
+- node_modulesやビルド生成物など一旦削除する
+- docker-compose build
+- docker-compose up
+
+コンテナ間通信が走る箇所はhostをコンテナ名に適宜読み替える必要があるので注意。env.mdに詳細を記した。

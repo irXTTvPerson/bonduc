@@ -1,0 +1,58 @@
+version: "3"
+
+services:
+
+  nginx:
+    restart: always
+    image: nginx:latest
+    env_file:
+      - ./src/inf/ngx/.env
+    ports:
+      - "8888:80"
+    networks:
+      - internal
+    volumes:
+      - ./.docker_volumes/ngx/log:/var/log/nginx/
+      - ./src/inf/ngx/:/etc/nginx/
+
+  postgres:
+    restart: always
+    image: postgres:latest
+    env_file:
+      - ./src/inf/pg/.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./.docker_volumes/pg:/var/lib/postgresql/data
+    networks:
+      - internal
+      
+  fe:
+    restart: always
+    image: fe:0.0.2
+    env_file:
+      - ./src/fe/web/.env
+    ports:
+      - "3000:3000"
+    networks:
+      - internal
+    build: ./src/fe/web
+
+  be:
+    restart: always
+    image: be:0.0.2
+    env_file:
+      - ./src/be/web/.env
+    ports:
+      - "3333:3333"
+    networks:
+      - internal
+    depends_on:
+      - postgres
+    build: ./src/be/web
+
+networks:
+  internal:
+    driver: bridge
+    ipam:
+      driver: default
