@@ -24,7 +24,7 @@ services:
       - "6380:6379"
     networks:
       - internal
-
+      
   postgres:
     restart: always
     image: postgres:latest
@@ -39,7 +39,7 @@ services:
       
   fe:
     restart: always
-    image: fe:0.0.2
+    image: fe:0.0.3
     env_file:
       - ./src/fe/web/.env
     ports:
@@ -50,7 +50,7 @@ services:
 
   be:
     restart: always
-    image: be:0.0.2
+    image: be:0.0.3
     env_file:
       - ./src/be/web/.env
     ports:
