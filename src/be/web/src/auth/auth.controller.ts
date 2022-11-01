@@ -25,6 +25,12 @@ export class AuthController {
   @Post("login")
   async login(@Req() req, @Res() res) {
     this.logger.log(`[POST] ${req.path} (${req.ip})`);
+    const session = await this.authService.storeSessionAndAccount(req.body);
+    if (!session) {
+      // res.status(400).send(); // TODO: uncomment this
+    }
+
+    // del --
     const token = await this.authService.login(req.user as Payload);
     const date = new Date();
     date.setDate(date.getDate() + Config.cookie.expireDate);
@@ -32,6 +38,7 @@ export class AuthController {
       expires: date,
       ...(Config.cookie.settings as CookieOptions)
     });
+    // -- del
     res.status(204).send();
   }
 
