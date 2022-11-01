@@ -39,5 +39,9 @@ export const Config = {
     pods: {
       find_at_once: 100
     }
+  },
+
+  redis: {
+    url: process.env.REDIS_SESSION_URL
   }
 };

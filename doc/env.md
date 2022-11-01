@@ -55,19 +55,23 @@ __[required]__ corsで期待するoriginを```http://hoge.com:1234```形式で�
 
 nginxをfeの前段に置く場合はnginxをoriginに指定する
 
-## inf/postgres
+### REDIS_SESSION_URL
+
+__[required]__ redisの接続先。```redis://localhost:6380```形式で記述する
+
+## inf/pg
 
 ### POSTGRES_PASSWORD
-__[optional: docker使用時にあると便利]__ DBのパスワード
+__[required]__ DBのパスワード
   
 ### POSTGRES_USER
-__[optional: docker使用時にあると便利]__ DBのユーザ名
+__[required]__ DBのユーザ名
   
 ### POSTGRES_DB
-__[optional: docker使用時にあると便利]__ DBのデータベース名
+__[required]__ DBのデータベース名
 
 ### POSTGRES_HOSTNAME
-__[optional: docker使用時にあると便利]__ DBのホスト名
+__[required]__ DBのホスト名
 
 ### POSTGRES_PORT
-__[optional: docker使用時にあると便利]__ DBのポート番号
+__[required]__ DBのポート番号

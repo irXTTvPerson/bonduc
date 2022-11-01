@@ -15,6 +15,16 @@ services:
       - ./.docker_volumes/ngx/log:/var/log/nginx/
       - ./src/inf/ngx/:/etc/nginx/
 
+  session:
+    restart: always
+    image: redis:latest
+    env_file:
+      - ./src/inf/sss/.env
+    ports:
+      - "6380:6379"
+    networks:
+      - internal
+
   postgres:
     restart: always
     image: postgres:latest
