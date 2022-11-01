@@ -4,27 +4,8 @@ import { RegisterService } from "./register/register.service";
 import { DraftAccountService } from "./register/draft/draftAccount.service";
 import { UnregisterService } from "./unregister/unregister.service";
 import { AuthService } from "./auth.service";
-import { LocalStrategy } from "./local.strategy";
-import { PassportModule } from "@nestjs/passport";
-import { JwtModule } from "@nestjs/jwt";
-import { Config } from "../config";
-import { JwtStrategy } from "./jwt.strategy";
 @Module({
-  imports: [
-    PassportModule,
-    JwtModule.register({
-      secret: Config.jwt.secret,
-      signOptions: { expiresIn: Config.jwt.expire }
-    })
-  ],
   controllers: [AuthController],
-  providers: [
-    RegisterService,
-    DraftAccountService,
-    UnregisterService,
-    AuthService,
-    LocalStrategy,
-    JwtStrategy
-  ]
+  providers: [RegisterService, DraftAccountService, UnregisterService, AuthService]
 })
 export class AuthModule {}

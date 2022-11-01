@@ -1,16 +1,22 @@
-import { ExecutionContext, Injectable, createParamDecorator } from "@nestjs/common";
+import { ExecutionContext, createParamDecorator, UnauthorizedException } from "@nestjs/common";
 import { GqlExecutionContext } from "@nestjs/graphql";
-import { AuthGuard } from "@nestjs/passport";
+import { client } from "../lib/redis";
 
-@Injectable()
-export class GqlAuthGuard extends AuthGuard("jwt") {
-  getRequest(context: ExecutionContext) {
+export const SessionValidater = createParamDecorator(
+  async (data: unknown, context: ExecutionContext) => {
     const ctx = GqlExecutionContext.create(context);
-    return ctx.getContext().req;
-  }
-}
+    const token = ctx.getContext().req.signedCookies["session"];
+    if (!token) {
+      throw new UnauthorizedException();
+    }
 
-export const JwtPayload = createParamDecorator((data: unknown, context: ExecutionContext) => {
-  const ctx = GqlExecutionContext.create(context);
-  return ctx.getContext().req.user;
-});
+    const redis = await client();
+    const account = await redis.get(token);
+    if (!account) {
+      console.error("account validate failed");
+      throw new UnauthorizedException();
+    }
+    await redis.disconnect();
+    return JSON.parse(account);
+  }
+);

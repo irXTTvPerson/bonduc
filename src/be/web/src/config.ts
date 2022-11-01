@@ -14,11 +14,6 @@ export const Config = {
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
   },
 
-  jwt: {
-    secret: process.env.JWT_SECRET_TOKEN,
-    expire: "7d"
-  },
-
   crypto: {
     hashAlgo: "sha3-512",
     encoding: "hex"

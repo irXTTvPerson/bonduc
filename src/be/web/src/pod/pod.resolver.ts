@@ -2,9 +2,8 @@ import { Resolver, Query, Args, Mutation } from "@nestjs/graphql";
 import { Pod } from "./pod.model";
 import { prisma } from "../lib/prisma";
 import { Config } from "../config";
-import { JwtPayload, GqlAuthGuard } from "../auth/gql.strategy";
-import { UseGuards } from "@nestjs/common";
-import { Payload } from "../auth/auth.service";
+import { SessionValidater } from "../auth/gql.strategy";
+import { Account } from "@prisma/client";
 
 const selectCond = {
   id: true,
@@ -22,16 +21,9 @@ const selectCond = {
 
 @Resolver(Pod)
 export class PodResolver {
-  @Query(() => Pod, { nullable: true })
-  async pod(@Args("id") id: string) {
-    return await prisma.pod.findUnique({
-      where: { id: id }
-    });
-  }
-
   @Query(() => [Pod], { nullable: "itemsAndList" })
-  @UseGuards(GqlAuthGuard)
   async pods(
+    @SessionValidater() account,
     @Args("to", { type: () => [String], nullable: "itemsAndList" }) to?: string[],
     @Args("cc", { type: () => [String], nullable: "itemsAndList" }) cc?: string[],
     @Args("created_at", { type: () => Date, nullable: true }) created_at?: Date,
@@ -52,27 +44,15 @@ export class PodResolver {
   }
 
   @Mutation(() => Pod, { nullable: true })
-  @UseGuards(GqlAuthGuard)
   async createPod(
-    @JwtPayload() payload: Payload,
+    @SessionValidater() account: Account,
     @Args("body", { type: () => String }) body: string,
     @Args("to", { type: () => [String] }) to: string[],
     @Args("cc", { type: () => [String], nullable: "itemsAndList" }) cc?: string[]
   ) {
-    const a = await prisma.account.findUnique({
-      where: {
-        identifier_name: payload.identifier_name
-      },
-      select: {
-        id: true
-      }
-    });
-    if (!a) {
-      return null;
-    }
     return await prisma.pod.create({
       data: {
-        account_id: a.id,
+        account_id: account.id,
         to: to,
         cc: cc,
         body: body

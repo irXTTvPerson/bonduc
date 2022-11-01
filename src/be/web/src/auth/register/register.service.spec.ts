@@ -4,10 +4,6 @@ import { UnregisterService } from "../unregister/unregister.service";
 import { DraftAccountService } from "./draft/draftAccount.service";
 import { RegisterService } from "./register.service";
 import { AuthService } from "../auth.service";
-import { LocalStrategy } from "../local.strategy";
-import { PassportModule } from "@nestjs/passport";
-import { JwtModule } from "@nestjs/jwt";
-import { Config } from "../../config";
 import { prisma } from "../../lib/prisma";
 import { randomUUID } from "crypto";
 import { hash } from "../../lib/hash";
@@ -31,21 +27,8 @@ describe("RegisterService", () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [
-        PassportModule,
-        JwtModule.register({
-          secret: Config.jwt.secret,
-          signOptions: { expiresIn: Config.jwt.expire }
-        })
-      ],
       controllers: [AuthController],
-      providers: [
-        RegisterService,
-        DraftAccountService,
-        UnregisterService,
-        AuthService,
-        LocalStrategy
-      ]
+      providers: [RegisterService, DraftAccountService, UnregisterService, AuthService]
     }).compile();
 
     service = module.get<RegisterService>(RegisterService);

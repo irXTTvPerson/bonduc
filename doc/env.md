@@ -27,9 +27,6 @@ docker上ではSSR時のfetchがコンテナ間通信になるのでhostを```ht
 
 ## be/web
 
-### JWT_SECRET_TOKEN
-__[required]__ jwtの秘密鍵トークン。十分長いランダム文字列であるべき。
-
 ### DATABASE_URL
 __[required]__ DBのエンドポイントを```postgresql://user:password@localhost:5432/bonduc?schema=public```形式で記述する
 
