@@ -2,7 +2,7 @@ import { Logger, Injectable } from "@nestjs/common";
 import { prisma } from "../lib/prisma";
 import { randomUUID } from "crypto";
 import { hash } from "../lib/hash";
-import { client } from "../lib/redis";
+import { redis } from "../lib/redis";
 import { Config } from "../config";
 
 export type Payload = {
@@ -28,11 +28,9 @@ export class AuthService {
         this.logger.warn(`storeSessionAndAccount: account ${arg.email}, ${arg.password} not found`);
         return null;
       }
-      const redis = await client();
       const key = randomUUID();
       const val = JSON.stringify(account);
       await redis.set(key, val, { EX: Config.redis.expire });
-      await redis.disconnect();
       return key;
     } catch (e) {
       this.logger.error(`storeSessionAndAccount: failed due to ${e}`);
