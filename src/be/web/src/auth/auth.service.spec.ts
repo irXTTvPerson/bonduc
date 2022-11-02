@@ -1,9 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { AuthService } from "./auth.service";
-import { LocalStrategy } from "./local.strategy";
-import { PassportModule } from "@nestjs/passport";
-import { JwtModule } from "@nestjs/jwt";
-import { Config } from "../config";
 import { AuthController } from "./auth.controller";
 import { RegisterService } from "./register/register.service";
 import { DraftAccountService } from "./register/draft/draftAccount.service";
@@ -26,21 +22,8 @@ describe("AuthService", () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [
-        PassportModule,
-        JwtModule.register({
-          secret: Config.jwt.secret,
-          signOptions: { expiresIn: Config.jwt.expire }
-        })
-      ],
       controllers: [AuthController],
-      providers: [
-        RegisterService,
-        DraftAccountService,
-        UnregisterService,
-        AuthService,
-        LocalStrategy
-      ]
+      providers: [RegisterService, DraftAccountService, UnregisterService, AuthService]
     }).compile();
 
     service = module.get<AuthService>(AuthService);
@@ -52,7 +35,7 @@ describe("AuthService", () => {
 
     it("normal", async () => {
       await prisma.account.create({ data: validData });
-      const ret = await service.validateUser(validData.email, "password");
+      const ret = await service.login({ email: validData.email, password: "password" });
       expect(ret).not.toBeNull();
     });
   });
@@ -62,19 +45,19 @@ describe("AuthService", () => {
     afterEach(async () => execSync("npx prisma migrate reset --force"));
 
     it("account not found", async () => {
-      const ret = await service.validateUser(validData.email, "password");
+      const ret = await service.login({ email: validData.email, password: "password" });
       expect(ret).toBeNull();
     });
 
     it("invalid password", async () => {
       await prisma.account.create({ data: validData });
-      const ret = await service.validateUser(validData.email, "password0");
+      const ret = await service.login({ email: validData.email, password: "password0" });
       expect(ret).toBeNull();
     });
 
     it("invalid email", async () => {
       await prisma.account.create({ data: validData });
-      const ret = await service.validateUser(validData.email + "hoge", "password");
+      const ret = await service.login({ email: validData.email + "hoge", password: "password" });
       expect(ret).toBeNull();
     });
   });

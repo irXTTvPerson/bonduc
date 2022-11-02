@@ -27,9 +27,6 @@ docker上ではSSR時のfetchがコンテナ間通信になるのでhostを```ht
 
 ## be/web
 
-### JWT_SECRET_TOKEN
-__[required]__ jwtの秘密鍵トークン。十分長いランダム文字列であるべき。
-
 ### DATABASE_URL
 __[required]__ DBのエンドポイントを```postgresql://user:password@localhost:5432/bonduc?schema=public```形式で記述する
 
@@ -55,19 +52,23 @@ __[required]__ corsで期待するoriginを```http://hoge.com:1234```形式で�
 
 nginxをfeの前段に置く場合はnginxをoriginに指定する
 
-## inf/postgres
+### REDIS_SESSION_URL
+
+__[required]__ redisの接続先。```redis://localhost:6380```形式で記述する
+
+## inf/pg
 
 ### POSTGRES_PASSWORD
-__[optional: docker使用時にあると便利]__ DBのパスワード
+__[required]__ DBのパスワード
   
 ### POSTGRES_USER
-__[optional: docker使用時にあると便利]__ DBのユーザ名
+__[required]__ DBのユーザ名
   
 ### POSTGRES_DB
-__[optional: docker使用時にあると便利]__ DBのデータベース名
+__[required]__ DBのデータベース名
 
 ### POSTGRES_HOSTNAME
-__[optional: docker使用時にあると便利]__ DBのホスト名
+__[required]__ DBのホスト名
 
 ### POSTGRES_PORT
-__[optional: docker使用時にあると便利]__ DBのポート番号
+__[required]__ DBのポート番号

@@ -14,11 +14,6 @@ export const Config = {
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
   },
 
-  jwt: {
-    secret: process.env.JWT_SECRET_TOKEN,
-    expire: "7d"
-  },
-
   crypto: {
     hashAlgo: "sha3-512",
     encoding: "hex"
@@ -39,5 +34,10 @@ export const Config = {
     pods: {
       find_at_once: 100
     }
+  },
+
+  redis: {
+    url: process.env.REDIS_SESSION_URL,
+    expire: 60 * 60 * 24 * 7 // 7 days in [sec]
   }
 };

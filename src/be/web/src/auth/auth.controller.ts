@@ -1,14 +1,13 @@
-import { Controller, Logger, Post, Get, Delete, Req, Res, UseGuards } from "@nestjs/common";
+import { Controller, Logger, Post, Get, Delete, Req, Res } from "@nestjs/common";
 import { DraftAccountService, isValidPost } from "./register/draft/draftAccount.service";
 import { RegisterService } from "./register/register.service";
 import { Request, Response, CookieOptions } from "express";
 import { Config } from "../config";
-import { AuthGuard } from "@nestjs/passport";
 import {
   UnregisterService,
   isValidPost as UnregisterRequest
 } from "./unregister/unregister.service";
-import { AuthService, Payload } from "./auth.service";
+import { AuthService } from "./auth.service";
 
 @Controller("auth")
 export class AuthController {
@@ -21,14 +20,17 @@ export class AuthController {
     private readonly authService: AuthService
   ) {}
 
-  @UseGuards(AuthGuard("local"))
   @Post("login")
   async login(@Req() req, @Res() res) {
     this.logger.log(`[POST] ${req.path} (${req.ip})`);
-    const token = await this.authService.login(req.user as Payload);
+    const session = await this.authService.login(req.body);
+    if (!session) {
+      res.status(400).send();
+      return;
+    }
     const date = new Date();
     date.setDate(date.getDate() + Config.cookie.expireDate);
-    res.cookie("session", token.access_token, {
+    res.cookie("session", session, {
       expires: date,
       ...(Config.cookie.settings as CookieOptions)
     });
