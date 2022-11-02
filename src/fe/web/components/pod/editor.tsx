@@ -54,7 +54,12 @@ const RenderForm = () => {
       })
 
       if (res.ok) {
-        setResult("post success")
+        const ret = await res.json()
+        if (ret?.errors) {
+          setResult(`error: ${ret.errors[0].message}`)
+        } else {
+          setResult("post success")
+        }
       } else {
         console.log(res.statusText)
         setResult("post failed")
