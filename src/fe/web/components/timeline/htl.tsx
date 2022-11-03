@@ -44,8 +44,13 @@ const renderHTL = (setResult: Dispatch<SetStateAction<never[]>>) =>
         })
       })
       if (res.ok) {
-        const data = (await res.json()).data
-        for (const i of data?.pods) ret.push(timelineTemplate(i))
+        const json = await res.json()
+        if (json?.errors) {
+          for(const i of json.errors)ret.push(<>{i.message}</>)
+        } else {
+          const data = json.data
+          for (const i of data?.pods) ret.push(timelineTemplate(i)) 
+        }
         setResult(ret)
       } else {
         console.log(res)

@@ -1,4 +1,5 @@
-import type { NextPage } from "next"
+import type { NextPage, GetServerSideProps } from "next"
+import { useRouter } from "next/router"
 import { useState } from "react"
 import { useForm, SubmitHandler } from "react-hook-form"
 import styles from "../../styles/Auth.module.css"
@@ -8,12 +9,27 @@ type Inputs = {
   password: string
 }
 
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const session = ctx.req.cookies["session"] || null
+  if (session) {
+    return {
+      redirect: {
+        permanent: false,
+        destination: "/"
+      }
+    }
+  }
+  return { props: {} }
+}
+
 const Login: NextPage = () => {
   const {
     register,
     handleSubmit,
     formState: { errors }
   } = useForm<Inputs>()
+
+  const router = useRouter()
 
   const [message, updateMessage] = useState("")
 
@@ -31,7 +47,7 @@ const Login: NextPage = () => {
       })
 
       if (res.ok) {
-        updateMessage("login success")
+        router.replace('/')
       } else {
         console.log(res.statusText)
         updateMessage("request failed.")

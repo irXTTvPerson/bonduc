@@ -7,9 +7,17 @@ export type Props = {
   address: AddressInfo
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async (
-  ctx
-): Promise<{ props: Props }> => {
+export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
+  const session = ctx.req.cookies["session"] || null
+  if (session) {
+    return {
+      redirect: {
+        permanent: false,
+        destination: "/"
+      }
+    }
+  }
+
   const info = ctx.req.socket.address() as AddressInfo
   return {
     props: {
