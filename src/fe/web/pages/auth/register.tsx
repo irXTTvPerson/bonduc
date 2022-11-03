@@ -5,9 +5,17 @@ type Props = {
   message: "invalid token" | "failed fetching" | "got fetch exception" | "success"
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async (
-  ctx
-): Promise<{ props: Props }> => {
+export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
+  const session = ctx.req.cookies["session"] || null
+  if (session) {
+    return {
+      redirect: {
+        permanent: false,
+        destination: "/"
+      }
+    }
+  }
+
   const { token } = ctx.query
   if (!token) {
     return {
