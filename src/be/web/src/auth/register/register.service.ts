@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
+import { Config } from "../../config";
 import { prisma } from "../../lib/prisma";
 
 @Injectable()
@@ -21,7 +22,8 @@ export class RegisterService {
             password: draft.password,
             ip_address: [draft.address],
             screen_name: draft.screen_name,
-            identifier_name: draft.identifier_name
+            identifier_name: draft.identifier_name,
+            account_unique_uri: `${Config.corsOrigin}/${draft.identifier_name}`
           }
         })
       ]);

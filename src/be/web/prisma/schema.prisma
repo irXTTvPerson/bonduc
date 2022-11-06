@@ -22,15 +22,19 @@ model DraftAccount {
 }
 
 model Account {
-  id              String    @id @unique @default(dbgenerated("gen_random_uuid()"))
-  created_at      DateTime  @default(now())
-  updated_at      DateTime? @updatedAt
-  email           String    @unique
-  password        String
-  ip_address      Json
-  screen_name     String
-  identifier_name String    @unique
-  Pod             Pod[]
+  id                 String    @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at         DateTime  @default(now())
+  updated_at         DateTime? @updatedAt
+  email              String    @unique
+  password           String
+  ip_address         Json
+  screen_name        String
+  identifier_name    String    @unique
+  header_url         String    @default("/img/default_header.png")
+  icon_url           String    @default("/img/default_icon.png")
+  account_unique_uri String    @unique
+  bio                String?
+  Pod                Pod[]
 }
 
 model Pod {
