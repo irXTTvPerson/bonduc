@@ -16,7 +16,8 @@ describe("UnregisterService", () => {
     email: "a@b.com",
     password: "password",
     screen_name: "screen",
-    identifier_name: "identifier"
+    identifier_name: "identifier",
+    account_unique_uri: 'hoge'
   };
 
   beforeEach(async () => {

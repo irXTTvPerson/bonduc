@@ -47,7 +47,7 @@ const Login: NextPage = () => {
       })
 
       if (res.ok) {
-        router.replace('/')
+        router.replace("/")
       } else {
         console.log(res.statusText)
         updateMessage("request failed.")

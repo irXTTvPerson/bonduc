@@ -6,6 +6,7 @@ import { GraphQLModule } from "@nestjs/graphql";
 import { ApolloDriver, ApolloDriverConfig } from "@nestjs/apollo";
 import { Config } from "./config";
 import { PodResolver } from "./pod/pod.resolver";
+import { AccountResolver } from "./account/account.resolver";
 
 @Module({
   imports: [
@@ -22,6 +23,6 @@ import { PodResolver } from "./pod/pod.resolver";
       }
     })
   ],
-  providers: [PodResolver]
+  providers: [PodResolver, AccountResolver]
 })
 export class AppModule {}
