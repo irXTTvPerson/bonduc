@@ -1,7 +1,8 @@
 import type { NextPage } from "next"
-import { Dispatch, SetStateAction, useEffect, useState } from "react"
+import { useState } from "react"
 import { useForm, SubmitHandler } from "react-hook-form"
 import styles from "../../styles/PodEditor.module.css"
+import { GqlClient } from "../../components/common/gql"
 
 type Inputs = {
   body: string
@@ -35,38 +36,16 @@ const RenderForm = () => {
   const [result, setResult] = useState("")
   const onSubmit: SubmitHandler<Inputs> = async (data: Inputs): Promise<void> => {
     setResult("podding...")
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BE_WEB_URL}/graphql`, {
-        headers: {
-          "Content-Type": "application/json"
-        },
-        method: "POST",
-        mode: "cors",
-        credentials: "include",
-        body: JSON.stringify({
-          operationName: null,
-          variables: {
-            body: data.body,
-            to: data.to
-          },
-          query: query
-        })
-      })
 
-      if (res.ok) {
-        const ret = await res.json()
-        if (ret?.errors) {
-          setResult(`error: ${ret.errors[0].message}`)
-        } else {
-          setResult("post success")
-        }
-      } else {
-        console.log(res.statusText)
-        setResult("post failed")
-      }
-    } catch (e) {
-      console.error(e)
-      setResult("post error")
+    const gql = new GqlClient()
+    await gql.fetch({
+      body: data.body,
+      to: data.to
+    }, query)
+    if (gql.err) {
+      setResult("post failed")
+    } else {
+      setResult("post success")
     }
   }
 
