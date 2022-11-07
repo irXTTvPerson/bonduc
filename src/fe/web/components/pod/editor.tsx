@@ -38,10 +38,13 @@ const RenderForm = () => {
     setResult("podding...")
 
     const gql = new GqlClient()
-    await gql.fetch({
-      body: data.body,
-      to: data.to
-    }, query)
+    await gql.fetch(
+      {
+        body: data.body,
+        to: data.to
+      },
+      query
+    )
     if (gql.err) {
       setResult("post failed")
     } else {

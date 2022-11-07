@@ -22,4 +22,7 @@ export class Account {
 
   @Field({ nullable: true })
   bio?: string;
+
+  @Field()
+  is_me?: boolean;
 }

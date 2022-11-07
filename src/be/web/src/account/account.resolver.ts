@@ -20,10 +20,14 @@ export class AccountResolver {
     @SessionValidater() account: PrismaAccount,
     @Args("identifier_name", { type: () => String }) identifier_name: string
   ) {
-    return await prisma.account.findUnique({
+    const a = await prisma.account.findUnique({
       where: {
         identifier_name: identifier_name
       }
     });
+    return {
+      ...a,
+      is_me: a.id === account.id
+    };
   }
 }

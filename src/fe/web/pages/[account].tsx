@@ -16,6 +16,7 @@ type Account = {
   header_url: string
   icon_url: string
   bio: string
+  is_me: boolean
 }
 
 const query = `
@@ -27,12 +28,12 @@ query($identifier_name: String!) {
     header_url
     icon_url
     bio
+    is_me
   }
 }
 `
 
-const toggleFollow = () => {
-}
+const toggleFollow = () => {}
 
 const AccountTemplate = (a: Account) => (
   <div className={styles.container}>
@@ -42,7 +43,7 @@ const AccountTemplate = (a: Account) => (
     <main className={styles.main}>
       <article key={a.identifier_name}>
         <Image src={a.icon_url} alt="icon" width={128} height={128} />
-        <button onClick={toggleFollow}>follow</button>
+        {a.is_me === false ? <button onClick={toggleFollow}>follow</button> : "yourself"}
         <section>{a.created_at}</section>
         <section>{a.screen_name}</section>
         <section>{a.identifier_name}</section>
@@ -92,11 +93,7 @@ const AccountPage: NextPage<Props> = (props: Props) => {
     getAccount(props.identifier_name, setResult)
   }, [props.identifier_name])
 
-  return (
-    <>
-      {renderResult(result)}
-    </>
-  )
+  return <>{renderResult(result)}</>
 }
 
 export default AccountPage

@@ -1,8 +1,6 @@
-
 export class GqlClient {
-
-  errors: any = null;
-  responseJson: any = null;
+  errors: any = null
+  responseJson: any = null
 
   async fetch<T>(variables: T, query: string) {
     try {
