@@ -33,6 +33,9 @@ export const Config = {
   limit: {
     pods: {
       find_at_once: 100
+    },
+    notification: {
+      find_at_once: 100
     }
   },
 

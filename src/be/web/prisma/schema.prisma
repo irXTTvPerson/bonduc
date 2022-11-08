@@ -35,6 +35,7 @@ model Account {
   account_unique_uri String    @unique
   bio                String?
   Pod                Pod[]
+  setting            Setting?
 }
 
 model Pod {
@@ -46,4 +47,38 @@ model Pod {
   from       Account   @relation(fields: [account_id], references: [id])
   body       String
   account_id String
+}
+
+model Setting {
+  id                       String  @id @unique @default(dbgenerated("gen_random_uuid()"))
+  who                      Account @relation(fields: [account_id], references: [id])
+  account_id               String  @unique
+  turn_notification_off    Boolean @default(false)
+  allow_all_follow_request Boolean @default(true)
+}
+
+enum NotificationType {
+  follow_request
+  follow_request_accepted
+  followed
+  muted
+  blocked
+  liked
+  RTed
+}
+
+model Notification {
+  id              String           @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at      DateTime         @default(now())
+  to_account_id   String
+  from_account_id String
+  type            NotificationType
+  opened          Boolean
+}
+
+model Follow {
+  id              String   @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at      DateTime @default(now())
+  from_account_id String
+  to_account_id   String
 }

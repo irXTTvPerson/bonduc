@@ -30,10 +30,59 @@ query($identifier_name: String!) {
     bio
     is_me
   }
+  getFollowRequest(target_identifier_name: $identifier_name) {
+    id
+  }
 }
 `
 
-const toggleFollow = () => {}
+const queryFollowRequest = `
+mutation($identifier_name: String!) {
+	createFollowRequest(target_identifier_name: $identifier_name) {
+    id
+  }
+}
+`
+type Global = {
+  account: Account | null
+  followReq: string
+  setFolloReq: (v: string) => void
+  sentFollowRequest: boolean
+}
+
+const g: Global = {
+  account: null,
+  followReq: "",
+  setFolloReq: (v) => {},
+  sentFollowRequest: false
+}
+
+const toggleFollow = () => {
+  ;(async () => {
+    g.setFolloReq("sending follow request")
+    const gql = new GqlClient()
+    await gql.fetch({ identifier_name: g.account?.identifier_name }, queryFollowRequest)
+    const ret = gql.res.createFollowRequest
+    if (!ret || gql.err) {
+      g.setFolloReq("sending follow request failed")
+    } else {
+      g.setFolloReq("sent follow request")
+      g.sentFollowRequest = true
+    }
+  })()
+}
+
+const renderFollowRequestButton = (is_me: boolean) => {
+  if (is_me) {
+    return "yourself"
+  } else {
+    if (g.sentFollowRequest) {
+      return "follow requested."
+    } else {
+      return <button onClick={toggleFollow}>follow request</button>
+    }
+  }
+}
 
 const AccountTemplate = (a: Account) => (
   <div className={styles.container}>
@@ -43,11 +92,12 @@ const AccountTemplate = (a: Account) => (
     <main className={styles.main}>
       <article key={a.identifier_name}>
         <Image src={a.icon_url} alt="icon" width={128} height={128} />
-        {a.is_me === false ? <button onClick={toggleFollow}>follow</button> : "yourself"}
+        {renderFollowRequestButton(a.is_me)}
         <section>{a.created_at}</section>
         <section>{a.screen_name}</section>
         <section>{a.identifier_name}</section>
       </article>
+      {g.followReq}
     </main>
     <footer>
       <section>{a.bio}</section>
@@ -61,10 +111,15 @@ const getAccount = async (
 ) => {
   const gql = new GqlClient()
   await gql.fetch({ identifier_name: identifier_name }, query)
-  if (gql.err) {
-    setResult(gql.err)
+  const a = gql.res.getAccount as Account
+  if (!a || gql.err) {
+    setResult(a ? gql.err : "account not found")
   } else {
-    setResult(gql.res.getAccount as Account)
+    setResult(a)
+    g.account = a
+    if (!a.is_me && gql.res?.getFollowRequest.length > 0) {
+      g.sentFollowRequest = true
+    }
   }
 }
 
@@ -88,10 +143,13 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 }
 
 const AccountPage: NextPage<Props> = (props: Props) => {
-  const [result, setResult] = useState<string | Account | undefined>("")
+  const [result, setResult] = useState<string | Account | undefined>("loading")
+  const [follwReq, setFollowReq] = useState("")
+  g.followReq = follwReq
+  g.setFolloReq = setFollowReq
   useEffect(() => {
     getAccount(props.identifier_name, setResult)
-  }, [props.identifier_name])
+  }, [])
 
   return <>{renderResult(result)}</>
 }
