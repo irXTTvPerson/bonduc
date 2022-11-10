@@ -8,6 +8,7 @@ import { Config } from "./config";
 import { PodResolver } from "./pod/pod.resolver";
 import { AccountResolver } from "./account/account.resolver";
 import { FollowRequestResolver } from "./notification/followRequest.resolver";
+import { NotificationResolver } from "./notification/notification.resolver";
 import { FollowResolver } from "./follow/follow.resolver";
 
 @Module({
@@ -25,6 +26,12 @@ import { FollowResolver } from "./follow/follow.resolver";
       }
     })
   ],
-  providers: [PodResolver, AccountResolver, FollowRequestResolver, FollowResolver]
+  providers: [
+    PodResolver,
+    AccountResolver,
+    FollowRequestResolver,
+    FollowResolver,
+    NotificationResolver
+  ]
 })
 export class AppModule {}

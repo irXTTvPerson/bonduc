@@ -18,7 +18,7 @@ export class Pod {
   @Field(() => [String], { nullable: "itemsAndList" })
   cc?: string[];
 
-  @Field(() => Account, { nullable: true })
+  @Field(() => Account)
   from: Account;
 
   @Field()

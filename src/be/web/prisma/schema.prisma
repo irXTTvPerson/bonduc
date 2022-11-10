@@ -70,9 +70,10 @@ enum NotificationType {
 model Notification {
   id              String           @id @unique @default(dbgenerated("gen_random_uuid()"))
   created_at      DateTime         @default(now())
-  to_account_id   String
-  from_account_id String
+  to_account_id   String // 受信
+  from_account_id String // 発信
   type            NotificationType
+  context_uri     String? // どのURLに対して行ったか
   opened          Boolean
 }
 

@@ -1,6 +1,7 @@
 import type { NextPage } from "next"
 import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import { GqlClient } from "../../components/common/gql"
+import { Pod } from "../../@types/pod"
 
 const queryHTL = `
 {
@@ -18,7 +19,7 @@ const queryHTL = `
 }
 `
 
-const timelineTemplate = (pod: any) => (
+const timelineTemplate = (pod: Pod) => (
   <article key={pod.id}>
     <section>{pod.created_at}</section>
     <section>{pod.from.screen_name}</section>
@@ -36,7 +37,7 @@ const renderHTL = (setResult: Dispatch<SetStateAction<never[]>>) =>
     if (gql.err) {
       for (const i of gql.err) ret.push(<>{i.message}</>)
     } else {
-      for (const i of gql.res?.pods) ret.push(timelineTemplate(i))
+      for (const i of gql.res?.pods as Pod[]) ret.push(timelineTemplate(i))
     }
     setResult(ret)
   })()
