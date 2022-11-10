@@ -9,6 +9,7 @@ const query = `
     id
     type
     created_at
+    deactivated
     opened
     from {
       identifier_name
@@ -21,6 +22,22 @@ const query = `
 const queryOpen = `
 query($id: String!) {
   openNotification(id: $id) {
+    id
+  }
+}
+`
+
+const queryAcceptFolloRequest = `
+mutation($identifier_name: String!) {
+  acceptFollowRequest(target_identifier_name: $identifier_name) {
+    id
+  }
+}
+`
+
+const queryRejectFolloRequest = `
+mutation($identifier_name: String!) {
+  rejectFollowRequest(target_identifier_name: $identifier_name) {
     id
   }
 }
@@ -43,13 +60,35 @@ class Notification {
     this.render()
   }
 
+  acceptOrReject(identifier_name: string, accept: boolean, i: number) {
+    ;(async () => {
+      const gql = new GqlClient()
+      await gql.fetch(
+        { identifier_name: identifier_name },
+        accept ? queryAcceptFolloRequest : queryRejectFolloRequest
+      )
+      this.notiResult[i].deactivated = true
+      this.render()
+    })()
+  }
+
+  renderFollowAcceptOrReject(identifier_name: string, i: number) {
+    return (
+      <>
+        <button onClick={() => this.acceptOrReject(identifier_name, true, i)}>accept</button>
+        <button onClick={() => this.acceptOrReject(identifier_name, false, i)}>reject</button>
+      </>
+    )
+  }
+
   notificationTemplate(i: number, n: Noti) {
     return (
-      <article key={i} onClick={() => this.updateOpendedFlag(i, n.id)}>
+      <article key={i} onClick={() => (!n.opened ? this.updateOpendedFlag(i, n.id) : {})}>
         <section>{n.type}</section>
         <section>{n.created_at}</section>
         <section>{n.from.screen_name}</section>
         <section>{n.from.identifier_name}</section>
+        {n.type === "follow_request" && !n.deactivated ? this.renderFollowAcceptOrReject(n.from.identifier_name, i) : ""}
         <section>{n.opened ? "opened" : "not opened"}</section>
       </article>
     )

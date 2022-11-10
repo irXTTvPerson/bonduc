@@ -1,3 +1,5 @@
+import { Account } from "./account"
+
 export type Pod = {
   id: string
   created_at: string

@@ -1,3 +1,5 @@
+import { Account } from "./account"
+
 export type Notification = {
   id: string
   created_at: string
@@ -10,6 +12,7 @@ export type Notification = {
     | "liked"
     | "RTed"
   context_uri?: string
+  deactivated: boolean
   opened: boolean
   to: Account
   from: Account

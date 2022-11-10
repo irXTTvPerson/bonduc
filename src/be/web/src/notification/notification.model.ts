@@ -19,6 +19,9 @@ export class Notification {
   context_uri?: string;
 
   @Field()
+  deactivated: boolean;
+
+  @Field()
   opened: boolean;
 
   @Field(() => Account)

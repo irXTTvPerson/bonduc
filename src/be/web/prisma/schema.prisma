@@ -60,6 +60,7 @@ model Setting {
 enum NotificationType {
   follow_request
   follow_request_accepted
+  follow_request_rejected
   followed
   muted
   blocked
@@ -74,6 +75,7 @@ model Notification {
   from_account_id String // 発信
   type            NotificationType
   context_uri     String? // どのURLに対して行ったか
+  deactivated     Boolean          @default(false) // 通知画面からの操作を受け付けるか
   opened          Boolean
 }
 

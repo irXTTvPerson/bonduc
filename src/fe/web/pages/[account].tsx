@@ -82,7 +82,6 @@ class AccountRender {
   sendFollowRequest = () => {
     ;(async () => {
       this.followStatus = "sending follow request"
-      this.followButton = <>sending...</>
       this.render()
 
       const gql = new GqlClient()
@@ -119,13 +118,13 @@ class AccountRender {
     ;(async () => {
       const gql = new GqlClient()
       await gql.fetch({ identifier_name: this.identifier_name }, query)
-      const a = gql.res?.getAccount as Account
-      const n = gql.res?.getFollowRequest as Notification[]
+      const a = gql.res?.getAccount as Account | null
+      const n = gql.res?.getFollowRequest as Notification | null
       if (!a || gql.err) {
         this.setResult(a ? gql.err : "account not found")
       } else {
         this.account = a
-        if (!this.account.is_me && n.length > 0) {
+        if (!this.account.is_me && n) {
           this.sentFollowRequest = true
         }
         this.render()

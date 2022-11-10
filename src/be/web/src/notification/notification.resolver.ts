@@ -21,6 +21,7 @@ select
 	n.type,
 	n.id,
 	n.created_at,
+  n.deactivated,
 	n.opened
 from 
 	"Account" a 
@@ -28,8 +29,6 @@ inner join
 	"Notification" n 
 on
 	a.id = n.to_account_id
-and 
-	n.opened = false
 ${
   arg.to
     ? `and
@@ -66,6 +65,7 @@ export class NotificationResolver {
         id: i.id,
         opened: i.opened,
         created_at: i.created_at,
+        deactivated: i.deactivated,
 
         from: {
           identifier_name: i.from_identifier_name,
