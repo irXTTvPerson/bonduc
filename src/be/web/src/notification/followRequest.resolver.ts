@@ -74,6 +74,18 @@ export class FollowRequestResolver {
       this.logger.error(`createFollowRequest: already follow request exist`);
       return null;
     }
+    const followed = await prisma.follow.findFirst({
+      where: {
+        AND: {
+          from_account_id: account.id,
+          to_account_id: a.id
+        }
+      }
+    });
+    if (followed) {
+      this.logger.error(`createFollowRequest: already followed`);
+      return null;
+    }
     return await prisma.notification.create({
       data: {
         from_account_id: account.id,
