@@ -16,7 +16,7 @@ export class FollowRequestResolver {
     @SessionValidater() account,
     @Args("target_identifier_name", { type: () => String }) target_identifier_name: string
   ) {
-    const type: NotificationType = "follow_request";
+    const type: NotificationType = "follow_requested";
     if (account.identifier_name === target_identifier_name) {
       // [fe]: accountページで自分自身に対してgetFollowRequestする場合がある
       this.logger.warn("get follow request cannot set same 'from' and 'to'");
@@ -46,7 +46,7 @@ export class FollowRequestResolver {
     @SessionValidater() account: Account,
     @Args("target_identifier_name", { type: () => String }) target_identifier_name: string
   ) {
-    const type: NotificationType = "follow_request";
+    const type: NotificationType = "follow_requested";
     if (account.identifier_name === target_identifier_name) {
       this.logger.error("follow request cannot create same 'from' and 'to'");
       return null;
@@ -104,7 +104,7 @@ export class FollowRequestResolver {
         AND: {
           from_account_id: a.id,
           to_account_id: account.id, // 自分宛てのフォロリクがあるはず
-          type: "follow_request"
+          type: "follow_requested"
         }
       }
     });
@@ -112,44 +112,57 @@ export class FollowRequestResolver {
       this.logger.error(`acceptOrRejectFollowRequest: follow request not found`);
       return null;
     }
-    const accept = await prisma.notification.findFirst({
-      where: {
-        AND: {
-          from_account_id: account.id,
-          to_account_id: a.id,
-          type: "follow_request_accepted"
-        }
-      }
-    });
-    const reject = await prisma.notification.findFirst({
-      where: {
-        AND: {
-          from_account_id: account.id,
-          to_account_id: a.id,
-          type: "follow_request_rejected"
-        }
-      }
-    });
-    if (accept || reject) {
-      this.logger.error(
-        `acceptOrRejectFollowRequest: accept or reject follow request already exist`
-      );
-      return null;
+    if (type === "follow_request_accepted") {
+      const [ret] = await prisma.$transaction([
+        prisma.notification.create({
+          data: {
+            from_account_id: account.id,
+            to_account_id: a.id,
+            type: type,
+            opened: false
+          }
+        }),
+        // acceptでもrejectでもフォロリクは消す
+        prisma.notification.delete({
+          where: { id: n.id }
+        }),
+        // followされる
+        prisma.follow.create({
+          data: {
+            from_account_id: a.id,
+            to_account_id: account.id
+          }
+        }),
+        // フォロリク通したらフォローされた通知する
+        prisma.notification.create({
+          data: {
+            from_account_id: a.id,
+            to_account_id: account.id,
+            type: "followed",
+            opened: false
+          }
+        })
+      ]);
+      return ret;
     }
-    await prisma.notification.update({
-      where: {
-        id: n.id
-      },
-      data: {deactivated: true}
-    });
-    return await prisma.notification.create({
-      data: {
-        from_account_id: account.id,
-        to_account_id: a.id,
-        type: type,
-        opened: false
-      }
-    });
+    if (type === "follow_request_rejected") {
+      const [ret] = await prisma.$transaction([
+        prisma.notification.create({
+          data: {
+            from_account_id: account.id,
+            to_account_id: a.id,
+            type: type,
+            opened: false
+          }
+        }),
+        // acceptでもrejectでもフォロリクは消す
+        prisma.notification.delete({
+          where: { id: n.id }
+        })
+      ]);
+      return ret;
+    }
+    return null;
   }
 
   @Mutation(() => Notification, { nullable: true })

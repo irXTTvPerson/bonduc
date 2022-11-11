@@ -16,7 +16,7 @@ export class Notification {
   type: NotificationType;
 
   @Field({ nullable: true })
-  context_uri?: string;
+  context?: string;
 
   @Field()
   deactivated: boolean;

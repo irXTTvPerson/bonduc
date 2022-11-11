@@ -88,7 +88,9 @@ class Notification {
         <section>{n.created_at}</section>
         <section>{n.from.screen_name}</section>
         <section>{n.from.identifier_name}</section>
-        {n.type === "follow_request" && !n.deactivated ? this.renderFollowAcceptOrReject(n.from.identifier_name, i) : ""}
+        {n.type === "follow_requested" && !n.deactivated
+          ? this.renderFollowAcceptOrReject(n.from.identifier_name, i)
+          : ""}
         <section>{n.opened ? "opened" : "not opened"}</section>
       </article>
     )

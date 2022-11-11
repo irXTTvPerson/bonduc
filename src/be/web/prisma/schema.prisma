@@ -58,7 +58,7 @@ model Setting {
 }
 
 enum NotificationType {
-  follow_request
+  follow_requested
   follow_request_accepted
   follow_request_rejected
   followed
@@ -74,9 +74,9 @@ model Notification {
   to_account_id   String // 受信
   from_account_id String // 発信
   type            NotificationType
-  context_uri     String? // どのURLに対して行ったか
+  context         String? // 何に対して行ったか　Pod|Account のid
   deactivated     Boolean          @default(false) // 通知画面からの操作を受け付けるか
-  opened          Boolean
+  opened          Boolean          @default(false)
 }
 
 model Follow {
