@@ -1,10 +1,11 @@
-import { Resolver, Query, Args } from "@nestjs/graphql";
+import { Resolver, Query, Mutation, Args } from "@nestjs/graphql";
 import { Follow } from "./follow.model";
 import { prisma } from "../lib/prisma";
 import { Config } from "../config";
 import { SessionValidater } from "../auth/gql.strategy";
 import { Account } from "@prisma/client";
 import { accountSelector, buildAccountFromTo } from "../lib/const";
+import { Logger } from "@nestjs/common";
 
 const query = `
 select 
@@ -79,6 +80,8 @@ limit
 
 @Resolver()
 export class FollowResolver {
+  private readonly logger = new Logger("FollowResolver");
+
   buildFollowObject(i: any, identifier_name: string): Follow {
     return {
       id: i.id,
@@ -114,7 +117,6 @@ export class FollowResolver {
       account.identifier_name,
       Config.limit.follow.find_at_once
     );
-
     return this.buildGqlObjectOne(res, target_identifier_name);
   }
 
@@ -128,7 +130,6 @@ export class FollowResolver {
       target_identifier_name,
       Config.limit.follow.find_at_once
     );
-
     return this.buildGqlObject(res, account.identifier_name);
   }
 
@@ -142,7 +143,20 @@ export class FollowResolver {
       target_identifier_name,
       Config.limit.follow.find_at_once
     );
-
     return this.buildGqlObject(res, account.identifier_name);
+  }
+
+  @Mutation(() => Follow, { nullable: true })
+  async unFollow(
+    @SessionValidater() account: Account,
+    @Args("target_identifier_name", { type: () => String }) target_identifier_name: string
+  ) {
+    const f = await this.isFollowing(account, target_identifier_name);
+    if (!f) {
+      this.logger.warn(`unFollow failed: not following ${target_identifier_name}`);
+      return null;
+    }
+    await prisma.follow.delete({ where: { id: f.id } });
+    return f;
   }
 }

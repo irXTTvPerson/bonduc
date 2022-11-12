@@ -40,11 +40,18 @@ mutation($identifier_name: String!) {
 }
 `
 
+const queryUnFollow = `
+mutation($identifier_name: String!) {
+	unFollow(target_identifier_name: $identifier_name) {
+    id
+  }
+}
+`
+
 type SetState = Dispatch<SetStateAction<JSX.Element>>
 
 class AccountRender {
   setResult: SetState
-  identifier_name: string
   hasFollowRequestSent: boolean = false
   followButton: JSX.Element = (<></>)
   followStatus: string = ""
@@ -58,9 +65,8 @@ class AccountRender {
     is_me: false
   }
 
-  constructor(identifier_name: string, setResult: SetState) {
+  constructor(setResult: SetState) {
     this.setResult = setResult
-    this.identifier_name = identifier_name
   }
 
   AccountTemplate(a: Account) {
@@ -107,24 +113,45 @@ class AccountRender {
     this.setResult(this.AccountTemplate(this.account))
   }
 
+  unfollow() {
+    ;(async () => {
+      const gql = new GqlClient()
+      await gql.fetch({ identifier_name: this.account?.identifier_name }, queryUnFollow)
+      const ret = gql.res.unFollow
+      if (!ret || gql.err) {
+        this.followButton = <>unfollow failed</>
+      } else {
+        this.isFollowing = false
+      }
+      this.render()
+    })()
+  }
+
   renderFollowButton() {
     if (this.account.is_me) {
       this.followButton = <>yourself</>
     } else {
       if (this.isFollowing) {
-        this.followButton = <>following</>
+        this.followButton = (
+          <>
+            <div>following</div>
+            <div>
+              <button onClick={() => this.unfollow()}>remove</button>
+            </div>
+          </>
+        )
       } else if (this.hasFollowRequestSent) {
         this.followButton = <>follow request sent</>
       } else {
-        this.followButton = <button onClick={this.sendFollowRequest}>follow request</button>
+        this.followButton = <button onClick={() => this.sendFollowRequest()}>follow request</button>
       }
     }
   }
 
-  init() {
+  init(identifier_name: string) {
     ;(async () => {
       const gql = new GqlClient()
-      await gql.fetch({ identifier_name: this.identifier_name }, query)
+      await gql.fetch({ identifier_name: identifier_name }, query)
       const a = gql.res?.getAccount as Account | null
       const n = gql.res?.hasFollowRequestSent as Notification | null
       const f = gql.res?.isFollowing as Follow | null
@@ -155,8 +182,8 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 
 const AccountPage: NextPage<Props> = (props: Props) => {
   const [result, setResult] = useState<JSX.Element>(<></>)
-  const a = new AccountRender(props.identifier_name, setResult)
-  useEffect(() => a.init(), [])
+  const a = new AccountRender(setResult)
+  useEffect(() => a.init(props.identifier_name), [])
 
   return (
     <div className={styles.container}>
