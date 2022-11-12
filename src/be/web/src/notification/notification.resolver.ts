@@ -1,4 +1,4 @@
-import { Resolver, Query, Args } from "@nestjs/graphql";
+import { Resolver, Mutation, Query, Args } from "@nestjs/graphql";
 import { Notification } from "./notification.model";
 import { prisma } from "../lib/prisma";
 import { Config } from "../config";
@@ -61,7 +61,7 @@ export class NotificationResolver {
     return this.buildGqlObject(res, account);
   }
 
-  @Query(() => Notification, { nullable: true })
+  @Mutation(() => Notification, { nullable: true })
   async openNotification(
     @SessionValidater() account: Account,
     @Args("id", { type: () => String }) id: string

@@ -20,7 +20,7 @@ const query = `
 `
 
 const queryOpen = `
-query($id: String!) {
+mutation($id: String!) {
   openNotification(id: $id) {
     id
   }
