@@ -36,6 +36,9 @@ export const Config = {
     },
     notification: {
       find_at_once: 20
+    },
+    follow: {
+      find_at_once: 20
     }
   },
 

@@ -1,7 +1,6 @@
 import { Resolver, Mutation, Query, Args } from "@nestjs/graphql";
 import { Notification } from "./notification.model";
 import { prisma } from "../lib/prisma";
-import { Config } from "../config";
 import { SessionValidater } from "../auth/gql.strategy";
 import { NotificationType } from "@prisma/client";
 import { Logger } from "@nestjs/common";
@@ -12,7 +11,7 @@ export class FollowRequestResolver {
   private readonly logger = new Logger("FollowRequestResolver");
 
   @Query(() => Notification, { nullable: true })
-  async getFollowRequest(
+  async hasFollowRequestSent(
     @SessionValidater() account,
     @Args("target_identifier_name", { type: () => String }) target_identifier_name: string
   ) {

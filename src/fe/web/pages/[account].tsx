@@ -5,6 +5,7 @@ import styles from "../styles/Account.module.css"
 import { GqlClient } from "../components/common/gql"
 import { Account } from "../@types/account"
 import { Notification } from "../@types/notification"
+import { Follow } from "../@types/follow"
 
 type Props = {
   session: string | null
@@ -22,7 +23,10 @@ query($identifier_name: String!) {
     bio
     is_me
   }
-  getFollowRequest(target_identifier_name: $identifier_name) {
+  hasFollowRequestSent(target_identifier_name: $identifier_name) {
+    id
+  }
+  isFollowing(target_identifier_name: $identifier_name) {
     id
   }
 }
@@ -41,9 +45,10 @@ type SetState = Dispatch<SetStateAction<JSX.Element>>
 class AccountRender {
   setResult: SetState
   identifier_name: string
-  sentFollowRequest: boolean = false
+  hasFollowRequestSent: boolean = false
   followButton: JSX.Element = (<></>)
   followStatus: string = ""
+  isFollowing: boolean = false
   account: Account = {
     created_at: "",
     screen_name: "",
@@ -91,7 +96,7 @@ class AccountRender {
         this.followStatus = "sending follow request failed"
       } else {
         this.followStatus = "send follow request success"
-        this.sentFollowRequest = true
+        this.hasFollowRequestSent = true
       }
       this.render()
     })()
@@ -106,7 +111,9 @@ class AccountRender {
     if (this.account.is_me) {
       this.followButton = <>yourself</>
     } else {
-      if (this.sentFollowRequest) {
+      if (this.isFollowing) {
+        this.followButton = <>following</>
+      } else if (this.hasFollowRequestSent) {
         this.followButton = <>follow request sent</>
       } else {
         this.followButton = <button onClick={this.sendFollowRequest}>follow request</button>
@@ -119,13 +126,17 @@ class AccountRender {
       const gql = new GqlClient()
       await gql.fetch({ identifier_name: this.identifier_name }, query)
       const a = gql.res?.getAccount as Account | null
-      const n = gql.res?.getFollowRequest as Notification | null
+      const n = gql.res?.hasFollowRequestSent as Notification | null
+      const f = gql.res?.isFollowing as Follow | null
       if (!a || gql.err) {
         this.setResult(a ? gql.err : "account not found")
       } else {
         this.account = a
         if (!this.account.is_me && n) {
-          this.sentFollowRequest = true
+          this.hasFollowRequestSent = true
+        }
+        if (f) {
+          this.isFollowing = true
         }
         this.render()
       }

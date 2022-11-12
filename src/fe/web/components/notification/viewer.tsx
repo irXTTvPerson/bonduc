@@ -112,10 +112,10 @@ class Notification {
     ;(async () => {
       const gql = new GqlClient()
       await gql.fetch({}, query)
-      this.notiResult = gql.res.getNotificationToMe as Noti[]
-      if (!this.notiResult || gql.err) {
-        this.setResult([<p>error</p>])
+      if (!gql.res || gql.err) {
+        this.setResult([<p key={"err"}>error</p>])
       } else {
+        this.notiResult = gql.res.getNotificationToMe as Noti[]
         this.render()
       }
     })()
