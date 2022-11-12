@@ -10,27 +10,27 @@ import { buildAccountFromTo } from "../lib/const";
 const query = `
 select 
   ${accountSelector}
-	n.type,
-	n.id,
-	n.created_at,
+  n.type,
+  n.id,
+  n.created_at,
   n.deactivated,
-	n.opened
+  n.opened
 from 
-	"Account" a 
+  "Account" a 
 inner join 
-	"Notification" n 
+  "Notification" n 
 on
-	a.id = n.to_account_id
+  a.id = n.to_account_id
 and
   a.identifier_name = $1
 inner join
-	"Account" b
+  "Account" b
 on
-	b.id = n.from_account_id
+  b.id = n.from_account_id
 order by 
-	n.created_at desc
+  n.created_at desc
 limit
-	$2
+  $2
 `;
 
 @Resolver()

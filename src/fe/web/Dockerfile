@@ -3,6 +3,6 @@ EXPOSE 3000
 WORKDIR /fe
 COPY . /fe
 RUN npm install && \
-	npm run build
+  npm run build
 
 CMD ["npm", "run", "start"]

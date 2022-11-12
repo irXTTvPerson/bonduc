@@ -11,7 +11,7 @@ type Inputs = {
 
 const query = `
 mutation ($body: String!, $to: [String!]!) {
-	createPod(
+  createPod(
     body: $body
     to: $to
   ) {

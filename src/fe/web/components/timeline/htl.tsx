@@ -5,7 +5,7 @@ import { Pod } from "../../@types/pod"
 
 const queryHTL = `
 {
-	pods(to: ["https://www.w3.org/ns/activitystreams#Public"]) {
+  pods(to: ["https://www.w3.org/ns/activitystreams#Public"]) {
     created_at
     body
     cc

@@ -10,24 +10,24 @@ import { Logger } from "@nestjs/common";
 const query = `
 select 
   ${accountSelector}
-	n.id,
-	n.created_at
+  n.id,
+  n.created_at
 from 
-	"Account" a 
+  "Account" a 
 inner join 
-	"Follow" n 
+  "Follow" n 
 on
-	a.id = n.to_account_id
+  a.id = n.to_account_id
  and
   a.identifier_name = $1
 inner join
-	"Account" b
+  "Account" b
 on
-	b.id = n.from_account_id
+  b.id = n.from_account_id
  and
   b.identifier_name = $2
 order by 
-	n.created_at desc
+  n.created_at desc
 limit
   $3
 `;
@@ -35,22 +35,22 @@ limit
 const queryFollower = `
 select 
   ${accountSelector}
-	n.id,
-	n.created_at
+  n.id,
+  n.created_at
 from 
-	"Account" a 
+  "Account" a 
 inner join 
-	"Follow" n 
+  "Follow" n 
 on
-	a.id = n.to_account_id
+  a.id = n.to_account_id
 and
   a.identifier_name = $1
 inner join
-	"Account" b
+  "Account" b
 on
-	b.id = n.from_account_id
+  b.id = n.from_account_id
 order by 
-	n.created_at desc
+  n.created_at desc
 limit
   $2
 `;
@@ -58,22 +58,22 @@ limit
 const queryFollowing = `
 select 
   ${accountSelector}
-	n.id,
-	n.created_at
+  n.id,
+  n.created_at
 from 
-	"Account" a 
+  "Account" a 
 inner join 
-	"Follow" n 
+  "Follow" n 
 on
-	a.id = n.to_account_id
+  a.id = n.to_account_id
 inner join
-	"Account" b
+  "Account" b
 on
-	b.id = n.from_account_id
+  b.id = n.from_account_id
 and
   b.identifier_name = $1
 order by 
-	n.created_at desc
+  n.created_at desc
 limit
   $2
 `;

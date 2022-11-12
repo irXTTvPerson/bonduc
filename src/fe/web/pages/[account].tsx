@@ -14,7 +14,7 @@ type Props = {
 
 const query = `
 query($identifier_name: String!) {
-	getAccount(identifier_name: $identifier_name) {
+  getAccount(identifier_name: $identifier_name) {
     created_at
     identifier_name
     screen_name
@@ -34,7 +34,7 @@ query($identifier_name: String!) {
 
 const queryFollowRequest = `
 mutation($identifier_name: String!) {
-	createFollowRequest(target_identifier_name: $identifier_name) {
+  createFollowRequest(target_identifier_name: $identifier_name) {
     id
   }
 }
@@ -42,7 +42,7 @@ mutation($identifier_name: String!) {
 
 const queryUnFollow = `
 mutation($identifier_name: String!) {
-	unFollow(target_identifier_name: $identifier_name) {
+  unFollow(target_identifier_name: $identifier_name) {
     id
   }
 }
