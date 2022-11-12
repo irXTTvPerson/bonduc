@@ -32,7 +32,13 @@ export const Config = {
 
   limit: {
     pods: {
-      find_at_once: 100
+      find_at_once: 20
+    },
+    notification: {
+      find_at_once: 20
+    },
+    follow: {
+      find_at_once: 20
     }
   },
 

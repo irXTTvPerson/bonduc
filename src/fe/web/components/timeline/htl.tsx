@@ -1,9 +1,11 @@
 import type { NextPage } from "next"
 import { Dispatch, SetStateAction, useEffect, useState } from "react"
+import { GqlClient } from "../../components/common/gql"
+import { Pod } from "../../@types/pod"
 
 const queryHTL = `
 {
-	pods(to: ["https://www.w3.org/ns/activitystreams#Public"]) {
+  pods(to: ["https://www.w3.org/ns/activitystreams#Public"]) {
     created_at
     body
     cc
@@ -17,7 +19,7 @@ const queryHTL = `
 }
 `
 
-const timelineTemplate = (pod: any) => (
+const timelineTemplate = (pod: Pod) => (
   <article key={pod.id}>
     <section>{pod.created_at}</section>
     <section>{pod.from.screen_name}</section>
@@ -28,36 +30,16 @@ const timelineTemplate = (pod: any) => (
 
 const renderHTL = (setResult: Dispatch<SetStateAction<never[]>>) =>
   (async () => {
-    try {
-      let ret: any = []
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BE_WEB_URL}/graphql`, {
-        headers: {
-          "Content-Type": "application/json"
-        },
-        method: "POST",
-        mode: "cors",
-        credentials: "include",
-        body: JSON.stringify({
-          operationName: null,
-          variables: {},
-          query: queryHTL
-        })
-      })
-      if (res.ok) {
-        const json = await res.json()
-        if (json?.errors) {
-          for (const i of json.errors) ret.push(<>{i.message}</>)
-        } else {
-          const data = json.data
-          for (const i of data?.pods) ret.push(timelineTemplate(i))
-        }
-        setResult(ret)
-      } else {
-        console.log(res)
-      }
-    } catch (e) {
-      console.error(e)
+    let ret: any = []
+
+    const gql = new GqlClient()
+    await gql.fetch({}, queryHTL)
+    if (gql.err) {
+      for (const i of gql.err) ret.push(<>{i.message}</>)
+    } else {
+      for (const i of gql.res?.pods as Pod[]) ret.push(timelineTemplate(i))
     }
+    setResult(ret)
   })()
 
 const HTL: NextPage = () => {

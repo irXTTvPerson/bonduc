@@ -7,6 +7,9 @@ import { ApolloDriver, ApolloDriverConfig } from "@nestjs/apollo";
 import { Config } from "./config";
 import { PodResolver } from "./pod/pod.resolver";
 import { AccountResolver } from "./account/account.resolver";
+import { FollowRequestResolver } from "./notification/followRequest.resolver";
+import { NotificationResolver } from "./notification/notification.resolver";
+import { FollowResolver } from "./follow/follow.resolver";
 
 @Module({
   imports: [
@@ -23,6 +26,12 @@ import { AccountResolver } from "./account/account.resolver";
       }
     })
   ],
-  providers: [PodResolver, AccountResolver]
+  providers: [
+    PodResolver,
+    AccountResolver,
+    FollowRequestResolver,
+    FollowResolver,
+    NotificationResolver
+  ]
 })
 export class AppModule {}

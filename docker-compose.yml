@@ -39,7 +39,7 @@ services:
       
   fe:
     restart: always
-    image: fe:0.0.3
+    image: fe:0.0.4
     env_file:
       - ./src/fe/web/.env
     ports:
@@ -50,7 +50,7 @@ services:
 
   be:
     restart: always
-    image: be:0.0.3
+    image: be:0.0.4
     env_file:
       - ./src/be/web/.env
     ports:
