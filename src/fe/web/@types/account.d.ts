@@ -5,5 +5,8 @@ export type Account = {
   header_url: string
   icon_url: string
   bio?: string
+}
+
+export type Myself = {
   is_me: boolean
 }

@@ -6,3 +6,13 @@ export type Follow = {
   to: Account
   from: Account
 }
+
+export type FollowStatus = {
+  isFollowing: boolean
+}
+
+export type FollowRequestStatus = "none" | "requested" | "rejected" | "accepted" | "error"
+
+export type FollowRequest = {
+  status: FollowRequestStatus = "error"
+}

@@ -7,26 +7,26 @@ registerEnumType(NotificationType, { name: "NotificationType" });
 @ObjectType()
 export class Notification {
   @Field()
-  id: string;
+  id: string = "";
 
   @Field()
-  created_at: Date;
+  created_at: Date = new Date("2000-01-01T00:00:00");
 
   @Field()
-  type: NotificationType;
+  type: NotificationType = "blocked";
 
   @Field({ nullable: true })
-  context?: string;
+  context?: string = null;
 
   @Field()
-  deactivated: boolean;
+  deactivated: boolean = false;
 
   @Field()
-  opened: boolean;
+  opened: boolean = false;
 
   @Field(() => Account)
-  to: Account;
+  to: Account = new Account();
 
   @Field(() => Account)
-  from: Account;
+  from: Account = new Account();
 }

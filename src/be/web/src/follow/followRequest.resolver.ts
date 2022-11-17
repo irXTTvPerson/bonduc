@@ -1,5 +1,5 @@
 import { Resolver, Mutation, Query, Args } from "@nestjs/graphql";
-import { Notification } from "./notification.model";
+import { FollowRequest } from "./followRequest.model";
 import { prisma } from "../lib/prisma";
 import { SessionValidater } from "../auth/gql.strategy";
 import { NotificationType } from "@prisma/client";
@@ -10,7 +10,7 @@ import { Account } from "@prisma/client";
 export class FollowRequestResolver {
   private readonly logger = new Logger("FollowRequestResolver");
 
-  @Query(() => Notification, { nullable: true })
+  @Query(() => FollowRequest, { nullable: true })
   async hasFollowRequestSent(
     @SessionValidater() account,
     @Args("target_identifier_name", { type: () => String }) target_identifier_name: string
@@ -31,16 +31,23 @@ export class FollowRequestResolver {
       this.logger.error(`getFollowRequest: account ${target_identifier_name} not found`);
       return null;
     }
-    return await prisma.notification.findFirst({
+    const ret = await prisma.notification.findFirst({
       where: {
         from_account_id: account.id,
         type: type,
         to_account_id: a.id
       }
     });
+    const f = new FollowRequest();
+    if (ret) {
+      f.status = "requested";
+    } else {
+      f.status = "none";
+    }
+    return f;
   }
 
-  @Mutation(() => Notification, { nullable: true })
+  @Mutation(() => FollowRequest, { nullable: true })
   async createFollowRequest(
     @SessionValidater() account: Account,
     @Args("target_identifier_name", { type: () => String }) target_identifier_name: string
@@ -85,7 +92,7 @@ export class FollowRequestResolver {
       this.logger.error(`createFollowRequest: already followed`);
       return null;
     }
-    return await prisma.notification.create({
+    await prisma.notification.create({
       data: {
         from_account_id: account.id,
         to_account_id: a.id,
@@ -93,6 +100,9 @@ export class FollowRequestResolver {
         opened: false
       }
     });
+    const f = new FollowRequest();
+    f.status = "requested";
+    return f;
   }
 
   async acceptOrReject(account: Account, target_identifier_name: string, type: NotificationType) {
@@ -123,8 +133,9 @@ export class FollowRequestResolver {
       this.logger.error(`acceptOrRejectFollowRequest: follow request not found`);
       return null;
     }
+    const f = new FollowRequest();
     if (type === "follow_request_accepted") {
-      const [ret] = await prisma.$transaction([
+      await prisma.$transaction([
         prisma.notification.create({
           data: {
             from_account_id: account.id,
@@ -154,10 +165,11 @@ export class FollowRequestResolver {
           }
         })
       ]);
-      return ret;
+      f.status = "accepted";
+      return f;
     }
     if (type === "follow_request_rejected") {
-      const [ret] = await prisma.$transaction([
+      await prisma.$transaction([
         prisma.notification.create({
           data: {
             from_account_id: account.id,
@@ -171,12 +183,13 @@ export class FollowRequestResolver {
           where: { id: n.id }
         })
       ]);
-      return ret;
+      f.status = "rejected";
+      return f;
     }
     return null;
   }
 
-  @Mutation(() => Notification, { nullable: true })
+  @Mutation(() => FollowRequest, { nullable: true })
   async acceptFollowRequest(
     @SessionValidater() account: Account,
     @Args("target_identifier_name", { type: () => String }) target_identifier_name: string
@@ -184,7 +197,7 @@ export class FollowRequestResolver {
     return await this.acceptOrReject(account, target_identifier_name, "follow_request_accepted");
   }
 
-  @Mutation(() => Notification, { nullable: true })
+  @Mutation(() => FollowRequest, { nullable: true })
   async rejectFollowRequest(
     @SessionValidater() account: Account,
     @Args("target_identifier_name", { type: () => String }) target_identifier_name: string

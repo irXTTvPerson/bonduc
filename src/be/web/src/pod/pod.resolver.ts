@@ -11,12 +11,7 @@ const selectCond = {
   to: true,
   cc: true,
   body: true,
-  from: {
-    select: {
-      screen_name: true,
-      identifier_name: true
-    }
-  }
+  from: true
 };
 
 @Resolver(Pod)
