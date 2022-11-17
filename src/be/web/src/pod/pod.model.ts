@@ -4,23 +4,23 @@ import { Account } from "../account/account.model";
 @ObjectType()
 export class Pod {
   @Field()
-  id: string;
+  id: string = "";
 
   @Field()
-  created_at: Date;
+  created_at: Date = new Date("2000-01-01T00:00:00");
 
-  @Field({ nullable: true })
-  updated_at?: Date;
+  @Field()
+  updated_at: Date = new Date("2000-01-01T00:00:00");
 
   @Field(() => [String])
-  to: string[];
+  to: string[] = [""];
 
   @Field(() => [String], { nullable: "itemsAndList" })
-  cc?: string[];
+  cc?: string[] = null;
 
   @Field(() => Account)
-  from: Account;
+  from: Account = new Account();
 
   @Field()
-  body: string;
+  body: string = "";
 }

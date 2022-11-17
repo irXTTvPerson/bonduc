@@ -4,14 +4,20 @@ import { Account } from "../account/account.model";
 @ObjectType()
 export class Follow {
   @Field()
-  id: string;
+  id: string = "";
 
   @Field()
-  created_at: Date;
+  created_at: Date = new Date("2000-01-01T00:00:00");
 
   @Field(() => Account)
-  to: Account;
+  to: Account = new Account();
 
   @Field(() => Account)
-  from: Account;
+  from: Account = new Account();
+}
+
+@ObjectType()
+export class FollowStatus {
+  @Field()
+  isFollowing: boolean = false;
 }

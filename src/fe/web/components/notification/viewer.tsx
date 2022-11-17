@@ -30,7 +30,7 @@ mutation($id: String!) {
 const queryAcceptFolloRequest = `
 mutation($identifier_name: String!) {
   acceptFollowRequest(target_identifier_name: $identifier_name) {
-    id
+    status
   }
 }
 `
@@ -38,7 +38,7 @@ mutation($identifier_name: String!) {
 const queryRejectFolloRequest = `
 mutation($identifier_name: String!) {
   rejectFollowRequest(target_identifier_name: $identifier_name) {
-    id
+    status
   }
 }
 `
