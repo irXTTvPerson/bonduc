@@ -8,4 +8,6 @@ export type Pod = {
   cc?: string[]
   from: Account
   body: string
+  favorite_count: number
+  favorited: boolean
 }

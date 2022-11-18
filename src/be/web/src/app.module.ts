@@ -10,6 +10,7 @@ import { AccountResolver } from "./account/account.resolver";
 import { FollowRequestResolver } from "./follow/followRequest.resolver";
 import { NotificationResolver } from "./notification/notification.resolver";
 import { FollowResolver } from "./follow/follow.resolver";
+import { FavoriteResolver } from "./favorite/favorite.resolver";
 
 @Module({
   imports: [
@@ -31,7 +32,8 @@ import { FollowResolver } from "./follow/follow.resolver";
     AccountResolver,
     FollowRequestResolver,
     FollowResolver,
-    NotificationResolver
+    NotificationResolver,
+    FavoriteResolver
   ]
 })
 export class AppModule {}

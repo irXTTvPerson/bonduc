@@ -16,12 +16,6 @@ mutation ($body: String!, $to: [String!]!) {
     to: $to
   ) {
     id
-    body
-    created_at
-    from {
-      screen_name
-      identifier_name
-    }
   }
 }
 `
