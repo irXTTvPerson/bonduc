@@ -84,7 +84,7 @@ export class NotificationResolver {
   helper: QueryHelper = new QueryHelper();
 
   @Query(() => [Notification], { nullable: "itemsAndList" })
-  async getNotificationToMe(@SessionValidater() account: Account) {
+  async getNotification(@SessionValidater() account: Account) {
     const res: any = await prisma.$queryRawUnsafe(
       await this.helper.build(),
       account.identifier_name,

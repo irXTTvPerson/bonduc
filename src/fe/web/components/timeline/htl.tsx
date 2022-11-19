@@ -25,7 +25,7 @@ const queryHTL = `
 
 const queryFav = `
 mutation ($id: String!) {
-  createFavorite(target_pod_id: $id) {
+  postFavorite(target_pod_id: $id) {
     value
   }
 }
@@ -33,7 +33,7 @@ mutation ($id: String!) {
 
 const queryUnFav = `
 mutation ($id: String!) {
-  removeFavorite(target_pod_id: $id) {
+  undoFavorite(target_pod_id: $id) {
     value
   }
 }
@@ -45,10 +45,10 @@ class Render {
   pods: Pod[] = []
 
   Fav(pod: Pod) {
-    ;(async () => {
+    ; (async () => {
       const gql = new GqlClient()
       await gql.fetch({ id: pod.id }, queryFav)
-      const res = gql.res.createFavorite as ResultObject
+      const res = gql.res.postFavorite as ResultObject
       if (res.value) {
         pod.favorited = true
         pod.favorite_count += 1
@@ -58,10 +58,10 @@ class Render {
   }
 
   unFav(pod: Pod) {
-    ;(async () => {
+    ; (async () => {
       const gql = new GqlClient()
       await gql.fetch({ id: pod.id }, queryUnFav)
-      const res = gql.res.removeFavorite as ResultObject
+      const res = gql.res.undoFavorite as ResultObject
       if (res.value) {
         pod.favorited = false
         pod.favorite_count -= 1
@@ -100,7 +100,7 @@ class Render {
   }
 
   init() {
-    ;(async () => {
+    ; (async () => {
       const gql = new GqlClient()
       await gql.fetch({}, queryHTL)
       if (gql.err) {

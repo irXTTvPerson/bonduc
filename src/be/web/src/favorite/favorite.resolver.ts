@@ -10,7 +10,7 @@ export class FavoriteResolver {
   private readonly logger = new Logger("FavoriteResolver");
 
   @Mutation(() => ResultObject)
-  async createFavorite(
+  async postFavorite(
     @SessionValidater() account: PrismaAccount,
     @Args("target_pod_id", { type: () => String }) target_pod_id: string
   ) {
@@ -31,7 +31,7 @@ export class FavoriteResolver {
       }
     });
     if (!pod) {
-      this.logger.error(`createFavorite: pod ${target_pod_id} not found`);
+      this.logger.error(`postFavorite: pod ${target_pod_id} not found`);
       res.value = false;
       return res;
     }
@@ -44,7 +44,7 @@ export class FavoriteResolver {
       }
     });
     if (f) {
-      this.logger.error(`createFavorite: favorite already exists`);
+      this.logger.error(`postFavorite: favorite already exists`);
       res.value = false;
       return res;
     }
@@ -76,7 +76,7 @@ export class FavoriteResolver {
   }
 
   @Mutation(() => ResultObject)
-  async removeFavorite(
+  async undoFavorite(
     @SessionValidater() account: PrismaAccount,
     @Args("target_pod_id", { type: () => String }) target_pod_id: string
   ) {
@@ -91,7 +91,7 @@ export class FavoriteResolver {
       }
     });
     if (!pod) {
-      this.logger.error(`removeFavorite: pod ${target_pod_id} not found`);
+      this.logger.error(`undoFavorite: pod ${target_pod_id} not found`);
       res.value = false;
       return res;
     }
@@ -104,7 +104,7 @@ export class FavoriteResolver {
       }
     });
     if (!f) {
-      this.logger.error(`removeFavorite: favorite not found`);
+      this.logger.error(`undoFavorite: favorite not found`);
       res.value = false;
       return res;
     }

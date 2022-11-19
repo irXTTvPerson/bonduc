@@ -5,7 +5,7 @@ import { Notification as Noti } from "../../@types/notification"
 
 const query = `
 {
-  getNotificationToMe {
+  getNotification {
     id
     type
     created_at
@@ -50,7 +50,7 @@ class Notification {
   notiResult: Noti[] = []
 
   updateOpendedFlag(i: number, id: string) {
-    ;(async () => {
+    ; (async () => {
       const gql = new GqlClient()
       await gql.fetch({ id: id }, queryOpen)
       // 開封通知は失敗してもエラーハンドルしない
@@ -61,7 +61,7 @@ class Notification {
   }
 
   acceptOrReject(identifier_name: string, accept: boolean, i: number) {
-    ;(async () => {
+    ; (async () => {
       const gql = new GqlClient()
       await gql.fetch(
         { identifier_name: identifier_name },
@@ -109,13 +109,13 @@ class Notification {
   }
 
   init() {
-    ;(async () => {
+    ; (async () => {
       const gql = new GqlClient()
       await gql.fetch({}, query)
       if (!gql.res || gql.err) {
         this.setResult([<p key={"err"}>error</p>])
       } else {
-        this.notiResult = gql.res.getNotificationToMe as Noti[]
+        this.notiResult = gql.res.getNotification as Noti[]
         this.render()
       }
     })()
