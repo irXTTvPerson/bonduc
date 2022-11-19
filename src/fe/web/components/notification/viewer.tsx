@@ -50,7 +50,7 @@ class Notification {
   notiResult: Noti[] = []
 
   updateOpendedFlag(i: number, id: string) {
-    ; (async () => {
+    ;(async () => {
       const gql = new GqlClient()
       await gql.fetch({ id: id }, queryOpen)
       // 開封通知は失敗してもエラーハンドルしない
@@ -61,7 +61,7 @@ class Notification {
   }
 
   acceptOrReject(identifier_name: string, accept: boolean, i: number) {
-    ; (async () => {
+    ;(async () => {
       const gql = new GqlClient()
       await gql.fetch(
         { identifier_name: identifier_name },
@@ -109,7 +109,7 @@ class Notification {
   }
 
   init() {
-    ; (async () => {
+    ;(async () => {
       const gql = new GqlClient()
       await gql.fetch({}, query)
       if (!gql.res || gql.err) {

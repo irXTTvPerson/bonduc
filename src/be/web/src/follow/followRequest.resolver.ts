@@ -15,36 +15,41 @@ export class FollowRequestResolver {
     @SessionValidater() account,
     @Args("identifier_name", { type: () => String }) identifier_name: string
   ) {
-    const type: NotificationType = "follow_requested";
-    if (account.identifier_name === identifier_name) {
-      // [fe]: accountページで自分自身に対してgetFollowRequestする場合がある
-      this.logger.warn("get follow request cannot set same 'from' and 'to'");
-      return null;
-    }
-    const a = await prisma.account.findUnique({
-      select: {
-        id: true
-      },
-      where: { identifier_name: identifier_name }
-    });
-    if (!a) {
-      this.logger.error(`getFollowRequest: account ${identifier_name} not found`);
-      return null;
-    }
-    const ret = await prisma.notification.findFirst({
-      where: {
-        from_account_id: account.id,
-        type: type,
-        to_account_id: a.id
+    try {
+      const type: NotificationType = "follow_requested";
+      if (account.identifier_name === identifier_name) {
+        // [fe]: accountページで自分自身に対してgetFollowRequestする場合がある
+        this.logger.warn("get follow request cannot set same 'from' and 'to'");
+        return null;
       }
-    });
-    const f = new FollowRequest();
-    if (ret) {
-      f.status = "requested";
-    } else {
-      f.status = "none";
+      const a = await prisma.account.findUnique({
+        select: {
+          id: true
+        },
+        where: { identifier_name: identifier_name }
+      });
+      if (!a) {
+        this.logger.error(`getFollowRequest: account ${identifier_name} not found`);
+        return null;
+      }
+      const ret = await prisma.notification.findFirst({
+        where: {
+          from_account_id: account.id,
+          type: type,
+          to_account_id: a.id
+        }
+      });
+      const f = new FollowRequest();
+      if (ret) {
+        f.status = "requested";
+      } else {
+        f.status = "none";
+      }
+      return f;
+    } catch (e) {
+      this.logger.error(e);
+      return null;
     }
-    return f;
   }
 
   @Mutation(() => FollowRequest, { nullable: true })
@@ -52,57 +57,62 @@ export class FollowRequestResolver {
     @SessionValidater() account: Account,
     @Args("identifier_name", { type: () => String }) identifier_name: string
   ) {
-    const type: NotificationType = "follow_requested";
-    if (account.identifier_name === identifier_name) {
-      this.logger.error("follow request cannot create same 'from' and 'to'");
-      return null;
-    }
-    const a = await prisma.account.findUnique({
-      select: {
-        id: true
-      },
-      where: { identifier_name: identifier_name }
-    });
-    if (!a) {
-      this.logger.error(`createFollowRequest: account ${identifier_name} not found`);
-      return null;
-    }
-    const n = await prisma.notification.findFirst({
-      where: {
-        AND: {
+    try {
+      const type: NotificationType = "follow_requested";
+      if (account.identifier_name === identifier_name) {
+        this.logger.error("follow request cannot create same 'from' and 'to'");
+        return null;
+      }
+      const a = await prisma.account.findUnique({
+        select: {
+          id: true
+        },
+        where: { identifier_name: identifier_name }
+      });
+      if (!a) {
+        this.logger.error(`createFollowRequest: account ${identifier_name} not found`);
+        return null;
+      }
+      const n = await prisma.notification.findFirst({
+        where: {
+          AND: {
+            from_account_id: account.id,
+            to_account_id: a.id,
+            type: type
+          }
+        }
+      });
+      if (n) {
+        this.logger.error(`createFollowRequest: already follow request exist`);
+        return null;
+      }
+      const followed = await prisma.follow.findFirst({
+        where: {
+          AND: {
+            from_account_id: account.id,
+            to_account_id: a.id
+          }
+        }
+      });
+      if (followed) {
+        this.logger.error(`createFollowRequest: already followed`);
+        return null;
+      }
+      await prisma.notification.create({
+        data: {
           from_account_id: account.id,
           to_account_id: a.id,
-          type: type
+          type: type,
+          opened: false
         }
-      }
-    });
-    if (n) {
-      this.logger.error(`createFollowRequest: already follow request exist`);
+      });
+      const f = new FollowRequest();
+      f.status = "requested";
+      return f;
+    } catch (e) {
+      this.logger.error(e);
       return null;
     }
-    const followed = await prisma.follow.findFirst({
-      where: {
-        AND: {
-          from_account_id: account.id,
-          to_account_id: a.id
-        }
-      }
-    });
-    if (followed) {
-      this.logger.error(`createFollowRequest: already followed`);
-      return null;
-    }
-    await prisma.notification.create({
-      data: {
-        from_account_id: account.id,
-        to_account_id: a.id,
-        type: type,
-        opened: false
-      }
-    });
-    const f = new FollowRequest();
-    f.status = "requested";
-    return f;
   }
 
   async acceptOrReject(account: Account, identifier_name: string, type: NotificationType) {
@@ -194,7 +204,12 @@ export class FollowRequestResolver {
     @SessionValidater() account: Account,
     @Args("identifier_name", { type: () => String }) identifier_name: string
   ) {
-    return await this.acceptOrReject(account, identifier_name, "follow_request_accepted");
+    try {
+      return await this.acceptOrReject(account, identifier_name, "follow_request_accepted");
+    } catch (e) {
+      this.logger.error(e);
+      return null;
+    }
   }
 
   @Mutation(() => FollowRequest, { nullable: true })
@@ -202,6 +217,11 @@ export class FollowRequestResolver {
     @SessionValidater() account: Account,
     @Args("identifier_name", { type: () => String }) identifier_name: string
   ) {
-    return await this.acceptOrReject(account, identifier_name, "follow_request_rejected");
+    try {
+      return await this.acceptOrReject(account, identifier_name, "follow_request_rejected");
+    } catch (e) {
+      this.logger.error(e);
+      return null;
+    }
   }
 }

@@ -120,10 +120,10 @@ class AccountRender {
       const gql = new GqlClient()
       await gql.fetch({ identifier_name: this.account?.identifier_name }, queryUnFollow)
       const ret = gql.res.unFollow as ResultObject
-      if (!ret || gql.err) {
-        this.followButton = <>unfollow failed</>
-      } else {
+      if (ret.value) {
         this.isFollowing = false
+      } else {
+        this.followButton = <>unfollow failed</>
       }
       this.render()
     })()

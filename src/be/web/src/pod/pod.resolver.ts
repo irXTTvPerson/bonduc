@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma";
 import { Config } from "../config";
 import { SessionValidater } from "../auth/gql.strategy";
 import { Account } from "@prisma/client";
+import { Logger } from "@nestjs/common";
 
 const selectCond = {
   id: true,
@@ -17,6 +18,8 @@ const selectCond = {
 
 @Resolver(Pod)
 export class PodResolver {
+  private readonly logger = new Logger("PodResolver");
+
   @Query(() => [Pod], { nullable: "itemsAndList" })
   async pods(
     @SessionValidater() account,
@@ -26,30 +29,35 @@ export class PodResolver {
     @Args("gt", { nullable: true }) gt?: boolean,
     @Args("lt", { nullable: true }) lt?: boolean
   ) {
-    const pods = await prisma.pod.findMany({
-      where: {
-        OR: {
-          to: { array_contains: to },
-          cc: { array_contains: cc },
-          created_at: gt ? { gt: created_at } : lt ? { lt: created_at } : created_at
-        }
-      },
-      select: selectCond,
-      take: Config.limit.pods.find_at_once
-    });
-    for (const pod of pods) {
-      const fav = await prisma.favorite.findFirst({
+    try {
+      const pods = await prisma.pod.findMany({
         where: {
-          AND: {
-            account_id: account.id,
-            pod_id: pod.id
+          OR: {
+            to: { array_contains: to },
+            cc: { array_contains: cc },
+            created_at: gt ? { gt: created_at } : lt ? { lt: created_at } : created_at
           }
-        }
+        },
+        select: selectCond,
+        take: Config.limit.pods.find_at_once
       });
-      // podに存在しないプロパティを強引に追加する
-      pod["favorited"] = fav ? true : false;
+      for (const pod of pods) {
+        const fav = await prisma.favorite.findFirst({
+          where: {
+            AND: {
+              account_id: account.id,
+              pod_id: pod.id
+            }
+          }
+        });
+        // podに存在しないプロパティを強引に追加する
+        pod["favorited"] = fav ? true : false;
+      }
+      return pods;
+    } catch (e) {
+      this.logger.error(e);
+      return null;
     }
-    return pods;
   }
 
   @Mutation(() => Pod, { nullable: true })
@@ -59,13 +67,18 @@ export class PodResolver {
     @Args("to", { type: () => [String] }) to: string[],
     @Args("cc", { type: () => [String], nullable: "itemsAndList" }) cc?: string[]
   ) {
-    return await prisma.pod.create({
-      data: {
-        account_id: account.id,
-        to: to,
-        cc: cc,
-        body: body
-      }
-    });
+    try {
+      return await prisma.pod.create({
+        data: {
+          account_id: account.id,
+          to: to,
+          cc: cc,
+          body: body
+        }
+      });
+    } catch (e) {
+      this.logger.error(e);
+      return null;
+    }
   }
 }

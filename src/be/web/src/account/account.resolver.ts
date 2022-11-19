@@ -16,17 +16,23 @@ export class AccountResolver {
     @Args("identifier_name", { type: () => String }) identifier_name: string
   ) {
     const me = new ResultObject();
-    const a = await prisma.account.findUnique({
-      where: {
-        identifier_name: identifier_name
+    try {
+      const a = await prisma.account.findUnique({
+        where: {
+          identifier_name: identifier_name
+        }
+      });
+      if (a.id === account.id) {
+        me.value = true;
+      } else {
+        me.value = false;
       }
-    });
-    if (a.id === account.id) {
-      me.value = true;
-    } else {
+    } catch (e) {
+      this.logger.error(e);
       me.value = false;
+    } finally {
+      return me;
     }
-    return me;
   }
 
   @Query(() => Account, { nullable: true })
@@ -34,15 +40,20 @@ export class AccountResolver {
     @SessionValidater() account: PrismaAccount,
     @Args("identifier_name", { type: () => String }) identifier_name: string
   ) {
-    const a = await prisma.account.findUnique({
-      where: {
-        identifier_name: identifier_name
+    try {
+      const a = await prisma.account.findUnique({
+        where: {
+          identifier_name: identifier_name
+        }
+      });
+      if (!a) {
+        this.logger.error(`getAccount: ${identifier_name} not found`);
+        return null;
       }
-    });
-    if (!a) {
-      this.logger.error(`getAccount: ${identifier_name} not found`);
+      return a;
+    } catch (e) {
+      this.logger.error(e);
       return null;
     }
-    return a;
   }
 }

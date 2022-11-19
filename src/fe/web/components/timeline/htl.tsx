@@ -45,7 +45,7 @@ class Render {
   pods: Pod[] = []
 
   Fav(pod: Pod) {
-    ; (async () => {
+    ;(async () => {
       const gql = new GqlClient()
       await gql.fetch({ id: pod.id }, queryFav)
       const res = gql.res.postFavorite as ResultObject
@@ -58,7 +58,7 @@ class Render {
   }
 
   unFav(pod: Pod) {
-    ; (async () => {
+    ;(async () => {
       const gql = new GqlClient()
       await gql.fetch({ id: pod.id }, queryUnFav)
       const res = gql.res.undoFavorite as ResultObject
@@ -100,7 +100,7 @@ class Render {
   }
 
   init() {
-    ; (async () => {
+    ;(async () => {
       const gql = new GqlClient()
       await gql.fetch({}, queryHTL)
       if (gql.err) {
