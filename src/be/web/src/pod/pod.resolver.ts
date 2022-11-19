@@ -11,6 +11,7 @@ const selectCond = {
   to: true,
   cc: true,
   body: true,
+  favorite_count: true,
   from: true
 };
 
@@ -25,7 +26,7 @@ export class PodResolver {
     @Args("gt", { nullable: true }) gt?: boolean,
     @Args("lt", { nullable: true }) lt?: boolean
   ) {
-    return await prisma.pod.findMany({
+    const pods = await prisma.pod.findMany({
       where: {
         OR: {
           to: { array_contains: to },
@@ -36,6 +37,19 @@ export class PodResolver {
       select: selectCond,
       take: Config.limit.pods.find_at_once
     });
+    for (const pod of pods) {
+      const fav = await prisma.favorite.findFirst({
+        where: {
+          AND: {
+            account_id: account.id,
+            pod_id: pod.id
+          }
+        }
+      });
+      // podに存在しないプロパティを強引に追加する
+      pod["favorited"] = fav ? true : false;
+    }
+    return pods;
   }
 
   @Mutation(() => Pod, { nullable: true })
@@ -51,8 +65,7 @@ export class PodResolver {
         to: to,
         cc: cc,
         body: body
-      },
-      select: selectCond
+      }
     });
   }
 }

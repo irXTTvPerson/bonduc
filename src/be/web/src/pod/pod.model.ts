@@ -23,4 +23,10 @@ export class Pod {
 
   @Field()
   body: string = "";
+
+  @Field()
+  favorite_count: number = 0;
+
+  @Field()
+  favorited: boolean = false;
 }
