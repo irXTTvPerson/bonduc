@@ -20,9 +20,3 @@ export class Account {
   @Field({ nullable: true })
   bio?: string = null;
 }
-
-@ObjectType()
-export class Myself {
-  @Field()
-  is_me: boolean = false;
-}

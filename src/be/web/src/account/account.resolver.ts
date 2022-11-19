@@ -1,29 +1,30 @@
 import { Resolver, Query, Args } from "@nestjs/graphql";
 import { prisma } from "../lib/prisma";
 import { SessionValidater } from "../auth/gql.strategy";
-import { Account, Myself } from "./account.model";
+import { Account } from "./account.model";
 import { Account as PrismaAccount } from "@prisma/client";
 import { Logger } from "@nestjs/common";
+import { ResultObject } from "../result/result.model";
 
 @Resolver()
 export class AccountResolver {
   private readonly logger = new Logger("AccountResolver");
 
-  @Query(() => Myself)
+  @Query(() => ResultObject)
   async isMe(
     @SessionValidater() account: PrismaAccount,
     @Args("identifier_name", { type: () => String }) identifier_name: string
   ) {
-    const me = new Myself();
+    const me = new ResultObject();
     const a = await prisma.account.findUnique({
       where: {
         identifier_name: identifier_name
       }
     });
     if (a.id === account.id) {
-      me.is_me = true;
+      me.value = true;
     } else {
-      me.is_me = false;
+      me.value = false;
     }
     return me;
   }

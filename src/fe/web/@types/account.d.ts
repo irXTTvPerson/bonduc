@@ -6,7 +6,3 @@ export type Account = {
   icon_url: string
   bio?: string
 }
-
-export type Myself = {
-  is_me: boolean
-}
