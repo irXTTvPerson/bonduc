@@ -5,6 +5,6 @@ export class ResultObject {
   @Field()
   value: boolean = false;
 
-  @Field()
+  @Field({ nullable: true })
   message?: string = null;
 }
