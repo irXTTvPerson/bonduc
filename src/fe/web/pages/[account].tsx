@@ -21,10 +21,10 @@ query($identifier_name: String!) {
     icon_url
     bio
   }
-  hasFollowRequestSent(target_identifier_name: $identifier_name) {
+  hasFollowRequestSent(identifier_name: $identifier_name) {
     status
   }
-  isFollowing(target_identifier_name: $identifier_name) {
+  isFollowing(identifier_name: $identifier_name) {
     isFollowing
   }
   isMe(identifier_name: $identifier_name) {
@@ -35,7 +35,7 @@ query($identifier_name: String!) {
 
 const queryFollowRequest = `
 mutation($identifier_name: String!) {
-  createFollowRequest(target_identifier_name: $identifier_name) {
+  createFollowRequest(identifier_name: $identifier_name) {
     status
   }
 }
@@ -43,7 +43,7 @@ mutation($identifier_name: String!) {
 
 const queryUnFollow = `
 mutation($identifier_name: String!) {
-  unFollow(target_identifier_name: $identifier_name) {
+  unFollow(identifier_name: $identifier_name) {
     isFollowing
   }
 }

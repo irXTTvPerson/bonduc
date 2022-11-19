@@ -12,15 +12,15 @@ export class FollowResolver {
   @Query(() => FollowStatus)
   async isFollowing(
     @SessionValidater() account: Account,
-    @Args("target_identifier_name", { type: () => String }) target_identifier_name: string
+    @Args("identifier_name", { type: () => String }) identifier_name: string
   ) {
     const ret = new FollowStatus();
     const a = await prisma.account.findUnique({
       select: { id: true },
-      where: { identifier_name: target_identifier_name }
+      where: { identifier_name: identifier_name }
     });
     if (!a) {
-      this.logger.error(`isFollowing: account ${target_identifier_name} not found`);
+      this.logger.error(`isFollowing: account ${identifier_name} not found`);
       ret.isFollowing = false;
       return ret;
     }
@@ -43,16 +43,16 @@ export class FollowResolver {
   @Mutation(() => FollowStatus, { nullable: true })
   async unFollow(
     @SessionValidater() account: Account,
-    @Args("target_identifier_name", { type: () => String }) target_identifier_name: string
+    @Args("identifier_name", { type: () => String }) identifier_name: string
   ) {
     const ret = new FollowStatus();
     const a = await prisma.account.findUnique({
       select: { id: true },
-      where: { identifier_name: target_identifier_name }
+      where: { identifier_name: identifier_name }
     });
     if (!a) {
       ret.isFollowing = false;
-      this.logger.error(`unFollow: account ${target_identifier_name} not found`);
+      this.logger.error(`unFollow: account ${identifier_name} not found`);
       return null;
     }
     const following = await prisma.follow.findFirst({
@@ -64,7 +64,7 @@ export class FollowResolver {
       }
     });
     if (!following) {
-      this.logger.warn(`unFollow failed: not following ${target_identifier_name}`);
+      this.logger.warn(`unFollow failed: not following ${identifier_name}`);
       return null;
     }
     await prisma.follow.delete({ where: { id: following.id } });
