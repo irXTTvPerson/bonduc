@@ -6,7 +6,6 @@ import * as cookieParser from "cookie-parser";
 
 async function bootstrap() {
   console.log(`[start up] BONDUC_ENV: ${process.env.BONDUC_ENV}`);
-  console.log(`[start up] config`, Config);
   let app: INestApplication = null;
   if (Config.isLocalEnv) {
     app = await NestFactory.create(AppModule, {

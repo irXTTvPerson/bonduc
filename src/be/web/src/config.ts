@@ -42,6 +42,10 @@ export const Config = {
     }
   },
 
+  gql: {
+    logging: true
+  },
+
   redis: {
     url: process.env.REDIS_SESSION_URL,
     expire: 60 * 60 * 24 * 7 // 7 days in [sec]

@@ -5,7 +5,7 @@ import { Notification as Noti } from "../../@types/notification"
 
 const query = `
 {
-  getNotificationToMe {
+  getNotification {
     id
     type
     created_at
@@ -29,7 +29,7 @@ mutation($id: String!) {
 
 const queryAcceptFolloRequest = `
 mutation($identifier_name: String!) {
-  acceptFollowRequest(target_identifier_name: $identifier_name) {
+  acceptFollowRequest(identifier_name: $identifier_name) {
     status
   }
 }
@@ -37,7 +37,7 @@ mutation($identifier_name: String!) {
 
 const queryRejectFolloRequest = `
 mutation($identifier_name: String!) {
-  rejectFollowRequest(target_identifier_name: $identifier_name) {
+  rejectFollowRequest(identifier_name: $identifier_name) {
     status
   }
 }
@@ -115,7 +115,7 @@ class Notification {
       if (!gql.res || gql.err) {
         this.setResult([<p key={"err"}>error</p>])
       } else {
-        this.notiResult = gql.res.getNotificationToMe as Noti[]
+        this.notiResult = gql.res.getNotification as Noti[]
         this.render()
       }
     })()

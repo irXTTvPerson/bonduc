@@ -3,8 +3,9 @@ import Image from "next/image"
 import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import styles from "../styles/Account.module.css"
 import { GqlClient } from "../components/common/gql"
-import { Account, Myself } from "../@types/account"
-import { FollowStatus, FollowRequest } from "../@types/follow"
+import { Account } from "../@types/account"
+import { FollowRequest } from "../@types/follow"
+import { ResultObject } from "../@types/result"
 
 type Props = {
   session: string | null
@@ -21,21 +22,21 @@ query($identifier_name: String!) {
     icon_url
     bio
   }
-  hasFollowRequestSent(target_identifier_name: $identifier_name) {
+  hasFollowRequestSent(identifier_name: $identifier_name) {
     status
   }
-  isFollowing(target_identifier_name: $identifier_name) {
-    isFollowing
+  isFollowing(identifier_name: $identifier_name) {
+    value
   }
   isMe(identifier_name: $identifier_name) {
-    is_me
+    value
   }
 }
 `
 
 const queryFollowRequest = `
 mutation($identifier_name: String!) {
-  createFollowRequest(target_identifier_name: $identifier_name) {
+  createFollowRequest(identifier_name: $identifier_name) {
     status
   }
 }
@@ -43,8 +44,8 @@ mutation($identifier_name: String!) {
 
 const queryUnFollow = `
 mutation($identifier_name: String!) {
-  unFollow(target_identifier_name: $identifier_name) {
-    isFollowing
+  unFollow(identifier_name: $identifier_name) {
+    value
   }
 }
 `
@@ -118,11 +119,11 @@ class AccountRender {
     ;(async () => {
       const gql = new GqlClient()
       await gql.fetch({ identifier_name: this.account?.identifier_name }, queryUnFollow)
-      const ret = gql.res.unFollow as FollowStatus | null
-      if (!ret || gql.err) {
-        this.followButton = <>unfollow failed</>
-      } else {
+      const ret = gql.res.unFollow as ResultObject
+      if (ret.value) {
         this.isFollowing = false
+      } else {
+        this.followButton = <>unfollow failed</>
       }
       this.render()
     })()
@@ -155,17 +156,17 @@ class AccountRender {
       await gql.fetch({ identifier_name: identifier_name }, query)
       const a = gql.res?.getAccount as Account | null
       const n = gql.res?.hasFollowRequestSent as FollowRequest | null
-      const f = gql.res?.isFollowing as FollowStatus
-      const m = gql.res?.isMe as Myself
+      const f = gql.res?.isFollowing as ResultObject
+      const m = gql.res?.isMe as ResultObject
       if (!a || gql.err) {
         this.setResult(a ? gql.err : "account not found")
       } else {
         this.account = a
-        this.is_me = m.is_me
+        this.is_me = m.value
         if (!this.is_me && n?.status === "requested") {
           this.hasFollowRequestSent = true
         }
-        if (f.isFollowing) {
+        if (f.value) {
           this.isFollowing = true
         }
         this.render()

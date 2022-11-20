@@ -5,6 +5,7 @@ import { Config } from "../config";
 import { SessionValidater } from "../auth/gql.strategy";
 import { Account } from "@prisma/client";
 import { Account as GqlAccount } from "../account/account.model";
+import { Logger } from "@nestjs/common";
 
 class QueryHelper {
   hasBuildSelectQuery: boolean = false;
@@ -82,15 +83,21 @@ class QueryHelper {
 @Resolver()
 export class NotificationResolver {
   helper: QueryHelper = new QueryHelper();
+  private readonly logger = new Logger("NotificationResolver");
 
   @Query(() => [Notification], { nullable: "itemsAndList" })
-  async getNotificationToMe(@SessionValidater() account: Account) {
-    const res: any = await prisma.$queryRawUnsafe(
-      await this.helper.build(),
-      account.identifier_name,
-      Config.limit.notification.find_at_once
-    );
-    return this.helper.toNotification(res);
+  async getNotification(@SessionValidater() account: Account) {
+    try {
+      const res: any = await prisma.$queryRawUnsafe(
+        await this.helper.build(),
+        account.identifier_name,
+        Config.limit.notification.find_at_once
+      );
+      return this.helper.toNotification(res);
+    } catch (e) {
+      this.logger.error(e);
+      return null;
+    }
   }
 
   @Mutation(() => Notification, { nullable: true })
@@ -98,13 +105,18 @@ export class NotificationResolver {
     @SessionValidater() account: Account,
     @Args("id", { type: () => String }) id: string
   ) {
-    return await prisma.notification.update({
-      where: {
-        id: id
-      },
-      data: {
-        opened: true
-      }
-    });
+    try {
+      return await prisma.notification.update({
+        where: {
+          id: id
+        },
+        data: {
+          opened: true
+        }
+      });
+    } catch (e) {
+      this.logger.error(e);
+      return null;
+    }
   }
 }

@@ -15,9 +15,3 @@ export class Follow {
   @Field(() => Account)
   from: Account = new Account();
 }
-
-@ObjectType()
-export class FollowStatus {
-  @Field()
-  isFollowing: boolean = false;
-}
