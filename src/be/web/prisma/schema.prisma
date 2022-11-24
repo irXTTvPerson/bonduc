@@ -29,9 +29,13 @@ model Account {
   password           String
   ip_address         Json
   screen_name        String
+  inbox              String
+  outbox             String
+  follower_uri       String
+  following_uri      String
   identifier_name    String     @unique
-  header_url         String     @default("/img/default_header.png")
-  icon_url           String     @default("/img/default_icon.png")
+  header_uri         String     @default("/img/default_header.png")
+  icon_uri           String     @default("/img/default_icon.png")
   account_unique_uri String     @unique
   bio                String?
   Pod                Pod[]
@@ -39,17 +43,41 @@ model Account {
   Favorite           Favorite[]
 }
 
+enum PodType {
+  pod
+  qp // quoted pod
+  dp // duplicated pod
+  mention
+}
+
+enum PodVisibility {
+  anyone
+  login // loggedin account only
+  global // global timeline only
+  local // local timeline only
+  following
+  follower
+  mutual // mutual following account only
+  mention // mentioned account only
+  list // listed in account only
+  password // password authenticated account only
+  myself // just myself only
+}
+
 model Pod {
-  id             String     @id @unique @default(dbgenerated("gen_random_uuid()"))
-  created_at     DateTime   @default(now())
-  updated_at     DateTime?  @updatedAt
-  to             Json
-  cc             Json?
-  from           Account    @relation(fields: [account_id], references: [id])
+  id             String        @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at     DateTime      @default(now())
+  updated_at     DateTime?     @updatedAt
+  to             Json // uri
+  cc             Json? // uri
+  from           Account       @relation(fields: [account_id], references: [id])
   body           String
   account_id     String
-  favorite_count Int        @default(0)
+  favorite_count Int           @default(0)
   Favorite       Favorite[]
+  type           PodType       @default(pod)
+  rp_from_id     String? // qp or dp の参照元pod id
+  visibility     PodVisibility @default(global)
 }
 
 model Setting {

@@ -4,10 +4,10 @@ import { GqlClient } from "../../components/common/gql"
 import { Pod } from "../../@types/pod"
 import styles from "../../styles/HTL.module.css"
 import { ResultObject } from "../../@types/result"
+import Link from "next/link"
+import Image from "next/image"
 
-const queryHTL = `
-{
-  pods(to: ["https://www.w3.org/ns/activitystreams#Public"]) {
+const commonPodResult = `
     created_at
     body
     cc
@@ -15,10 +15,29 @@ const queryHTL = `
     id
     favorited
     favorite_count
+    visibility
+    rp_from_id
+    type
     from {
       identifier_name
       screen_name
+      icon_uri
+      account_unique_uri
     }
+`
+
+const queryHTL = `
+{
+  pods(to: ["https://www.w3.org/ns/activitystreams#Public"]) {
+    ${commonPodResult}
+  }
+}
+`
+
+const queryGetPod = `
+query ($id: String!) {
+  getPod(id: $id) {
+    ${commonPodResult}
   }
 }
 `
@@ -38,6 +57,19 @@ mutation ($id: String!) {
   }
 }
 `
+
+const queryPostQP = `
+mutation ($id: String!, $v: PodVisibility!) {
+  createDpPod(pod_id: $id, visibility: $v) {
+    ${commonPodResult}
+  }
+}
+`
+
+const toDateString = (date: string) => {
+  const d = new Date(date)
+  return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`
+}
 
 class Render {
   setResult: Dispatch<SetStateAction<JSX.Element[]>>
@@ -70,21 +102,113 @@ class Render {
     })()
   }
 
-  timelineTemplate(pod: Pod) {
+  async convertDpToPod(pod: Pod) {
+    const qp = new GqlClient()
+    await qp.fetch({ id: pod.rp_from_id }, queryGetPod)
+    let res = qp.res?.getPod as Pod
+    // "dpしました"表示できるようtypeだけ元の値を保持
+    res.type = pod.type
+    return res
+  }
+
+  postDP(pod: Pod) {
+    ;(async () => {
+      const gql = new GqlClient()
+      await gql.fetch({ id: pod.id, v: pod.visibility }, queryPostQP)
+      const res = gql.res.createDpPod as Pod
+      if (!res || gql.err) {
+        console.error("failed to post DP")
+      } else {
+        this.pods.unshift(await this.convertDpToPod(res))
+        this.render()
+      }
+    })()
+  }
+
+  renderDP(pod: Pod) {
     return (
-      <article key={pod.id}>
-        <section>{pod.created_at}</section>
-        <section>{pod.from.screen_name}</section>
-        <section>{pod.body}</section>
-        {pod.favorited ? (
-          <section className={styles.fav} onClick={() => this.unFav(pod)}>
-            ★
-          </section>
-        ) : (
-          <section className={styles.fav} onClick={() => this.Fav(pod)}>
-            ☆
-          </section>
-        )}
+      <>
+        {pod.from.screen_name}さんがDPしました
+        {this.renderPod(pod)}
+      </>
+    )
+  }
+
+  renderPod(pod: Pod) {
+    return (
+      <>
+        <span className={styles.podContainer /* header */}>
+          <div className={styles.expander}>
+            <span className={styles.icon /* icon */}>
+              <Link href={pod.from.icon_uri}>
+                <Image src={pod.from.icon_uri} width={48} height={48} alt="icon" />
+              </Link>
+            </span>
+            <span className={styles.name /* name */}>
+              <Link href={pod.from.account_unique_uri}>
+                <span className={styles.separator}>{pod.from.screen_name}</span>
+                <span>@{pod.from.identifier_name}</span>
+              </Link>
+            </span>
+            <span className={styles.timestamp /* timestamp */}>
+              <Link href="">{toDateString(pod.created_at)}</Link>
+            </span>
+          </div>
+        </span>
+
+        <span className={styles.podContainer /* main */}>
+          <span className={styles.icon /* spacer */} />
+          <span className={styles.message /* body */}>{pod.body}</span>
+        </span>
+
+        <span className={styles.podContainer /* foot */}>
+          <span className={styles.icon /* spacer */} />
+          <span className={styles.message /* buttons */}>
+            <span className={`${styles.cursor} ${styles.icon_margin}`}>◀</span>
+            <span
+              className={`${styles.cursor} ${styles.icon_margin}`}
+              onClick={() => this.postDP(pod)}
+            >
+              📣
+            </span>
+            {pod.favorited ? (
+              <span
+                className={`${styles.cursor} ${styles.icon_margin}`}
+                onClick={() => this.unFav(pod)}
+              >
+                ✨
+              </span>
+            ) : (
+              <span
+                className={`${styles.cursor} ${styles.icon_margin}`}
+                onClick={() => this.Fav(pod)}
+              >
+                ☆
+              </span>
+            )}
+          </span>
+        </span>
+      </>
+    )
+  }
+
+  timelineTemplate(pod: Pod, index: number) {
+    let result: JSX.Element
+    switch (pod.type) {
+      case "pod":
+        result = this.renderPod(pod)
+        break
+      case "dp":
+        result = this.renderDP(pod)
+        break
+      default:
+        result = <>error</>
+        console.log(pod)
+        break
+    }
+    return (
+      <article className={styles.article} key={index}>
+        {result}
       </article>
     )
   }
@@ -95,7 +219,9 @@ class Render {
 
   render() {
     this.result = []
-    for (const i of this.pods) this.result.push(this.timelineTemplate(i))
+    this.pods.forEach((pod, i) => {
+      this.result.push(this.timelineTemplate(pod, i))
+    })
     this.setResult(this.result)
   }
 
@@ -106,8 +232,19 @@ class Render {
       if (gql.err) {
         for (const i of gql.err) this.result.push(<>{i.message}</>)
       } else {
-        this.pods = gql.res?.pods
-        for (const i of gql.res?.pods as Pod[]) this.result.push(this.timelineTemplate(i))
+        const pods = gql.res?.pods as Pod[]
+        this.pods = await Promise.all(
+          pods.map(async (v) => {
+            // dpされた参照元のpodを取得して書き換える
+            if (v.type === "dp") {
+              return await this.convertDpToPod(v)
+            }
+            return v
+          })
+        )
+        this.pods.forEach((pod, i) => {
+          this.result.push(this.timelineTemplate(pod, i))
+        })
       }
       this.render()
     })()

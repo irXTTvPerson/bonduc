@@ -23,7 +23,11 @@ export class RegisterService {
             ip_address: [draft.address],
             screen_name: draft.screen_name,
             identifier_name: draft.identifier_name,
-            account_unique_uri: `${Config.corsOrigin}/${draft.identifier_name}`
+            account_unique_uri: `${Config.corsOrigin}/${draft.identifier_name}`,
+            inbox: `${Config.corsOrigin}/${draft.identifier_name}/inbox`,
+            outbox: `${Config.corsOrigin}/${draft.identifier_name}/outbox`,
+            follower_uri: `${Config.corsOrigin}/${draft.identifier_name}/follower`,
+            following_uri: `${Config.corsOrigin}/${draft.identifier_name}/following`
           }
         })
       ]);

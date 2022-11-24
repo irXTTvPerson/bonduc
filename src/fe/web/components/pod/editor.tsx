@@ -3,17 +3,18 @@ import { useState } from "react"
 import { useForm, SubmitHandler } from "react-hook-form"
 import styles from "../../styles/PodEditor.module.css"
 import { GqlClient } from "../../components/common/gql"
+import { PodVisibility } from "../../@types/pod"
 
 type Inputs = {
   body: string
-  to: string[]
+  v: PodVisibility
 }
 
 const query = `
-mutation ($body: String!, $to: [String!]!) {
+mutation ($body: String!, $v: PodVisibility!) {
   createPod(
     body: $body
-    to: $to
+    visibility: $v
   ) {
     id
   }
@@ -35,7 +36,7 @@ const RenderForm = () => {
     await gql.fetch(
       {
         body: data.body,
-        to: data.to
+        v: data.v
       },
       query
     )
@@ -56,28 +57,18 @@ const RenderForm = () => {
           ></textarea>
         </div>
         <label>
-          <input
-            type="radio"
-            id="public"
-            {...register("to", { required: true })}
-            value={["https://www.w3.org/ns/activitystreams#Public"]}
-          />
+          <input type="radio" id="public" {...register("v", { required: true })} value={"global"} />
           public
         </label>
         <label>
-          <input
-            type="radio"
-            id="local"
-            {...register("to", { required: true })}
-            value={["https://www.w3.org/ns/activitystreams#Local"]}
-          />
+          <input type="radio" id="local" {...register("v", { required: true })} value={"local"} />
           local
         </label>
         <div>
           <input type="submit" />
         </div>
       </form>
-      {errors.body || errors.to ? "all fields are required" : result}
+      {errors.body || errors.v ? "all fields are required" : result}
     </>
   )
 }

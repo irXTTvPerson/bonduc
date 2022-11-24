@@ -18,8 +18,8 @@ query($identifier_name: String!) {
     created_at
     identifier_name
     screen_name
-    header_url
-    icon_url
+    header_uri
+    icon_uri
     bio
   }
   hasFollowRequestSent(identifier_name: $identifier_name) {
@@ -63,8 +63,8 @@ class AccountRender {
     created_at: "",
     screen_name: "",
     identifier_name: "",
-    header_url: "",
-    icon_url: ""
+    header_uri: "",
+    icon_uri: ""
   }
 
   constructor(setResult: SetState) {
@@ -75,10 +75,10 @@ class AccountRender {
     return (
       <>
         <header>
-          <Image src={a.header_url} alt="header" width={1024} height={256} />
+          <Image src={a.header_uri} alt="header" width={1024} height={256} />
         </header>
         <article key={a.identifier_name}>
-          <Image src={a.icon_url} alt="icon" width={128} height={128} />
+          <Image src={a.icon_uri} alt="icon" width={128} height={128} />
           {this.followButton}
           <section>{a.created_at}</section>
           <section>{a.screen_name}</section>

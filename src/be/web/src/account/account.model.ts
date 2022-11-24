@@ -12,11 +12,14 @@ export class Account {
   identifier_name: string = "";
 
   @Field()
-  header_url: string = "";
+  header_uri: string = "";
 
   @Field()
-  icon_url: string = "";
+  icon_uri: string = "";
 
   @Field({ nullable: true })
   bio?: string = null;
+
+  @Field()
+  account_unique_uri: string = "";
 }
