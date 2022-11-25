@@ -16,7 +16,7 @@ mutation ($body: String!, $v: PodVisibility!) {
     body: $body
     visibility: $v
   ) {
-    id
+    value
   }
 }
 `
@@ -56,14 +56,20 @@ const RenderForm = () => {
             {...register("body", { required: true })}
           ></textarea>
         </div>
-        <label>
-          <input type="radio" id="public" {...register("v", { required: true })} value={"global"} />
-          public
-        </label>
-        <label>
-          <input type="radio" id="local" {...register("v", { required: true })} value={"local"} />
-          local
-        </label>
+        公開範囲: 
+        <select {...register("v", { required: true })}>
+          <option value={"anyone"}>誰でも</option>
+          <option value={"login"}>ログインユーザー</option>
+          <option value={"global"} selected>連合</option>
+          <option value={"local"}>ローカル</option>
+          <option value={"following"}>フォローしてる人</option>
+          <option value={"follower"}>フォロワー</option>
+          <option value={"mutual"}>相互</option>
+          <option value={"mention"}>メンションした人</option>
+          <option value={"list"}>リストに入ってる人</option>
+          <option value={"password"}>パスワード公開</option>
+          <option value={"myself"}>自分のみ</option>
+        </select>
         <div>
           <input type="submit" />
         </div>

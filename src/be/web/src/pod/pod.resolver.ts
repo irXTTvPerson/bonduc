@@ -107,14 +107,15 @@ export class PodResolver {
     }
   }
 
-  @Mutation(() => Pod, { nullable: true })
+  @Mutation(() => ResultObject)
   async createPod(
     @SessionValidater() account: Account,
     @Args("body", { type: () => String }) body: string,
     @Args("visibility", { type: () => PodVisibility }) visibility: PodVisibility
   ) {
+    const res = new ResultObject();
     try {
-      return await prisma.pod.create({
+      await prisma.pod.create({
         data: {
           account_id: account.id,
           to: this.convertVisibilityTo(visibility, account),
@@ -123,9 +124,12 @@ export class PodResolver {
           visibility: visibility
         }
       });
+      res.value = true;
     } catch (e) {
       this.logger.error(e);
-      return null;
+      res.value = false;
+    } finally {
+      return res;
     }
   }
 
