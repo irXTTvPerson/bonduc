@@ -5,6 +5,7 @@ import { Config } from "../config";
 import { SessionValidater } from "../auth/gql.strategy";
 import { Account, PodVisibility } from "@prisma/client";
 import { Logger } from "@nestjs/common";
+import { ResultObject } from "../result/result.model";
 
 @Resolver(Pod)
 export class PodResolver {
@@ -34,14 +35,15 @@ export class PodResolver {
         break;
       case "mutual":
         // TODO
+        // to = [...mutual_accounts_uri];
         break;
       case "list":
         // TODO
-        // cc = [...listed_accounts_uri];
+        // to = [...listed_accounts_uri];
         break;
       case "mention":
         // TODO
-        // cc = [...mentioned_accounts_uri];
+        // to = [...mentioned_accounts_uri];
         break;
     }
     return to;
@@ -55,7 +57,6 @@ export class PodResolver {
       case "local":
       case "anyone":
       case "global":
-      case "mutual":
       case "mention":
         cc = [account.follower_uri];
         break;
@@ -106,29 +107,6 @@ export class PodResolver {
     }
   }
 
-  @Query(() => Pod, { nullable: true })
-  async getPod(@SessionValidater() account, @Args("id", { type: () => String }) id: string) {
-    try {
-      const pod = await prisma.pod.findUnique({
-        where: { id: id },
-        include: { from: true }
-      });
-      const fav = await prisma.favorite.findFirst({
-        where: {
-          AND: {
-            account_id: account.id,
-            pod_id: pod.id
-          }
-        }
-      });
-      pod["favorited"] = fav ? true : false;
-      return pod;
-    } catch (e) {
-      this.logger.error(e);
-      return null;
-    }
-  }
-
   @Mutation(() => Pod, { nullable: true })
   async createPod(
     @SessionValidater() account: Account,
@@ -151,44 +129,35 @@ export class PodResolver {
     }
   }
 
-  @Mutation(() => Pod, { nullable: true })
+  @Mutation(() => ResultObject)
   async createDpPod(
     @SessionValidater() account: Account,
     @Args("pod_id", { type: () => String }) pod_id: string,
     @Args("visibility", { type: () => PodVisibility }) visibility: PodVisibility
   ) {
+    const res = new ResultObject();
     try {
-      const dp = await prisma.pod.findFirst({
-        where: {
-          AND: {
-            account_id: account.id,
-            rp_from_id: pod_id,
-            visibility: visibility,
-            type: "dp"
-          }
-        }
-      });
-      if (dp) {
-        this.logger.error(`createDpPod: already exists`);
-        return null;
+      const pod = await prisma.pod.findUnique({ where: { id: pod_id } });
+      if (!pod) {
+        this.logger.error(`createDpPod: pod not found`);
+        res.value = false;
+        return res;
       }
-      const ret = await prisma.pod.create({
+      await prisma.dpPod.create({
         data: {
           account_id: account.id,
           to: this.convertVisibilityTo(visibility, account),
           cc: this.convertVisibilityCc(visibility, account),
-          body: "",
-          visibility: visibility,
-          rp_from_id: pod_id,
-          type: "dp"
-        },
-        include: { from: true }
+          pod_id: pod_id,
+          visibility: visibility
+        }
       });
-      ret["favorited"] = false;
-      return ret;
+      res.value = true;
     } catch (e) {
       this.logger.error(e);
-      return null;
+      res.value = false;
+    } finally {
+      return res;
     }
   }
 }

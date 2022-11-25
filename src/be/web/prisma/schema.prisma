@@ -39,15 +39,8 @@ model Account {
   account_unique_uri String     @unique
   bio                String?
   Pod                Pod[]
-  setting            Setting?
   Favorite           Favorite[]
-}
-
-enum PodType {
-  pod
-  qp // quoted pod
-  dp // duplicated pod
-  mention
+  DpPod              DpPod[]
 }
 
 enum PodVisibility {
@@ -71,21 +64,26 @@ model Pod {
   to             Json // uri
   cc             Json? // uri
   from           Account       @relation(fields: [account_id], references: [id])
-  body           String
   account_id     String
+  body           String
   favorite_count Int           @default(0)
+  dp_count       Int           @default(0)
   Favorite       Favorite[]
-  type           PodType       @default(pod)
-  rp_from_id     String? // qp or dp の参照元pod id
   visibility     PodVisibility @default(global)
+  DpPod          DpPod[]
 }
 
-model Setting {
-  id                       String  @id @unique @default(dbgenerated("gen_random_uuid()"))
-  who                      Account @relation(fields: [account_id], references: [id])
-  account_id               String  @unique
-  turn_notification_off    Boolean @default(false)
-  allow_all_follow_request Boolean @default(true)
+model DpPod {
+  created_at DateTime      @default(now())
+  to         Json // uri
+  cc         Json? // uri
+  from       Account       @relation(fields: [account_id], references: [id])
+  account_id String
+  body       Pod           @relation(fields: [pod_id], references: [id])
+  visibility PodVisibility @default(global)
+  pod_id     String
+
+  @@unique([account_id, pod_id])
 }
 
 enum NotificationType {

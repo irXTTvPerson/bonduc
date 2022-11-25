@@ -10,12 +10,9 @@ export type Pod = {
   body: string
   favorite_count: number
   favorited: boolean
-  type: PodType
   visibility: PodVisibility
   rp_from_id?: string
 }
-
-export type PodType = "pod" | "qp" | "dp" | "mention"
 
 export type PodVisibility =
   | "anyone"
