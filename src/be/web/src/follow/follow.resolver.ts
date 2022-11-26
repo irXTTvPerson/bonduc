@@ -16,28 +16,17 @@ export class FollowResolver {
   ) {
     const ret = new ResultObject();
     try {
-      const a = await prisma.account.findUnique({
+      const to_account = await prisma.account.findUnique({
         select: { id: true },
         where: { identifier_name: identifier_name }
       });
-      if (!a) {
-        this.logger.error(`isFollowing: account ${identifier_name} not found`);
-        ret.value = false;
-        return ret;
-      }
       const following = await prisma.follow.findFirst({
         where: {
-          AND: {
-            to_account_id: a.id,
-            from_account_id: account.id
-          }
+          from_account_id: account.id,
+          to_account_id: to_account.id
         }
       });
-      if (following) {
-        ret.value = true;
-      } else {
-        ret.value = false;
-      }
+      ret.value = following ? true : false;
     } catch (e) {
       this.logger.error(e);
       ret.value = false;
@@ -53,30 +42,74 @@ export class FollowResolver {
   ) {
     const ret = new ResultObject();
     try {
-      const a = await prisma.account.findUnique({
+      const to_account = await prisma.account.findUnique({
         select: { id: true },
         where: { identifier_name: identifier_name }
       });
-      if (!a) {
-        ret.value = false;
-        this.logger.error(`unFollow: account ${identifier_name} not found`);
-        return ret;
-      }
-      const following = await prisma.follow.findFirst({
+      const findOrDeleteAcceptRejectCondition = {
         where: {
-          AND: {
-            to_account_id: a.id,
-            from_account_id: account.id
+          from_account_id_to_account_id: {
+            from_account_id: to_account.id,
+            to_account_id: account.id
           }
         }
-      });
-      if (!following) {
-        ret.value = false;
-        this.logger.error(`unFollow failed: not following ${identifier_name}`);
-        return ret;
+      };
+      const deleteCondition = {
+        where: {
+          from_account_id_to_account_id: {
+            from_account_id: account.id,
+            to_account_id: to_account.id
+          }
+        }
+      };
+      const followDeleteCondition = {
+        where: {
+          from_account_id_to_account_id: {
+            from_account_id: account.id,
+            to_account_id: to_account.id
+          }
+        }
+      };
+      const hasReject = await prisma.rejectFollowRequest.findUnique(
+        findOrDeleteAcceptRejectCondition
+      );
+      const hasAccept = await prisma.acceptFollowRequest.findUnique(
+        findOrDeleteAcceptRejectCondition
+      );
+
+      if (hasReject && hasAccept) {
+        const [r1, r2, r3, r4] = await prisma.$transaction([
+          prisma.rejectFollowRequest.delete(findOrDeleteAcceptRejectCondition),
+          prisma.acceptFollowRequest.delete(findOrDeleteAcceptRejectCondition),
+          prisma.follow.delete(followDeleteCondition),
+          prisma.notifyFollowed.delete(deleteCondition)
+        ]);
+        if (r1 && r2 && r3 && r4) ret.value = true;
+        else ret.value = false;
+      } else if (hasReject) {
+        const [r1, r2, r3] = await prisma.$transaction([
+          prisma.rejectFollowRequest.delete(findOrDeleteAcceptRejectCondition),
+          prisma.follow.delete(followDeleteCondition),
+          prisma.notifyFollowed.delete(deleteCondition)
+        ]);
+        if (r1 && r2 && r3) ret.value = true;
+        else ret.value = false;
+      } else if (hasAccept) {
+        const [r1, r2, r3] = await prisma.$transaction([
+          prisma.acceptFollowRequest.delete(findOrDeleteAcceptRejectCondition),
+          prisma.follow.delete(followDeleteCondition),
+          prisma.notifyFollowed.delete(deleteCondition)
+        ]);
+        if (r1 && r2 && r3) ret.value = true;
+        else ret.value = false;
+      } else {
+        const [r1, r2] = await prisma.$transaction([
+          prisma.follow.delete(followDeleteCondition),
+          prisma.notifyFollowed.delete(deleteCondition)
+        ]);
+        if (r1 && r2) ret.value = true;
+        else ret.value = false;
       }
-      await prisma.follow.delete({ where: { id: following.id } });
-      ret.value = true;
     } catch (e) {
       this.logger.error(e);
       ret.value = false;

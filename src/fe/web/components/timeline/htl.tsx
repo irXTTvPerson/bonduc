@@ -35,7 +35,7 @@ const queryHTL = `
 
 const queryFav = `
 mutation ($id: String!) {
-  postFavorite(target_pod_id: $id) {
+  postFavorite(pod_id: $id) {
     value
   }
 }
@@ -43,7 +43,7 @@ mutation ($id: String!) {
 
 const queryUnFav = `
 mutation ($id: String!) {
-  undoFavorite(target_pod_id: $id) {
+  undoFavorite(pod_id: $id) {
     value
   }
 }
@@ -70,6 +70,7 @@ class Render {
   Fav(pod: Pod) {
     ;(async () => {
       const gql = new GqlClient()
+      console.log(pod)
       await gql.fetch({ id: pod.id }, queryFav)
       const res = gql.res.postFavorite as ResultObject
       if (res.value) {

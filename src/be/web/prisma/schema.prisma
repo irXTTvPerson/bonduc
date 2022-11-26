@@ -22,25 +22,30 @@ model DraftAccount {
 }
 
 model Account {
-  id                 String     @id @unique @default(dbgenerated("gen_random_uuid()"))
-  created_at         DateTime   @default(now())
-  updated_at         DateTime?  @updatedAt
-  email              String     @unique
-  password           String
-  ip_address         Json
-  screen_name        String
-  inbox              String
-  outbox             String
-  follower_uri       String
-  following_uri      String
-  identifier_name    String     @unique
-  header_uri         String     @default("/img/default_header.png")
-  icon_uri           String     @default("/img/default_icon.png")
-  account_unique_uri String     @unique
-  bio                String?
-  Pod                Pod[]
-  Favorite           Favorite[]
-  DpPod              DpPod[]
+  id                  String                @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at          DateTime              @default(now())
+  updated_at          DateTime?             @updatedAt
+  email               String                @unique
+  password            String
+  ip_address          Json
+  screen_name         String
+  inbox               String
+  outbox              String
+  follower_uri        String
+  following_uri       String
+  identifier_name     String                @unique
+  header_uri          String                @default("/img/default_header.png")
+  icon_uri            String                @default("/img/default_icon.png")
+  account_unique_uri  String                @unique
+  bio                 String?
+  Pod                 Pod[]
+  Favorite            Favorite[]
+  DpPod               DpPod[]
+  FollowRequest       FollowRequest[]
+  AcceptFollowRequest AcceptFollowRequest[]
+  RejectFollowRequest RejectFollowRequest[]
+  NotifyFollowed      NotifyFollowed[]
+  Follow              Follow[]
 }
 
 enum PodVisibility {
@@ -86,33 +91,61 @@ model DpPod {
   @@unique([account_id, pod_id])
 }
 
-enum NotificationType {
-  follow_requested
-  follow_request_accepted
-  follow_request_rejected
-  followed
-  muted
-  blocked
-  liked
-  RTed
+enum NotifyType {
+  FollowRequest
+  AcceptFollowRequest
+  RejectFollowRequest
+  Followed
+  INVALID
 }
 
-model Notification {
-  id              String           @id @unique @default(dbgenerated("gen_random_uuid()"))
-  created_at      DateTime         @default(now())
-  to_account_id   String // 受信
-  from_account_id String // 発信
-  type            NotificationType
-  context         String? // 何に対して行ったか　Pod|Account のid
-  deactivated     Boolean          @default(false) // 通知画面からの操作を受け付けるか
-  opened          Boolean          @default(false)
+model FollowRequest {
+  from_account_id String
+  created_at      DateTime @default(now())
+  to_account_id   String
+  opened          Boolean  @default(false)
+  from            Account  @relation(fields: [from_account_id], references: [id])
+
+  @@unique([from_account_id, to_account_id])
+}
+
+model AcceptFollowRequest {
+  from_account_id String
+  created_at      DateTime @default(now())
+  to_account_id   String
+  opened          Boolean  @default(false)
+  from            Account  @relation(fields: [from_account_id], references: [id])
+
+  @@unique([from_account_id, to_account_id])
+}
+
+model RejectFollowRequest {
+  from_account_id String
+  created_at      DateTime @default(now())
+  to_account_id   String
+  opened          Boolean  @default(false)
+  from            Account  @relation(fields: [from_account_id], references: [id])
+
+  @@unique([from_account_id, to_account_id])
+}
+
+model NotifyFollowed {
+  from_account_id String
+  created_at      DateTime @default(now())
+  to_account_id   String
+  opened          Boolean  @default(false)
+  from            Account  @relation(fields: [from_account_id], references: [id])
+
+  @@unique([from_account_id, to_account_id])
 }
 
 model Follow {
-  id              String   @id @unique @default(dbgenerated("gen_random_uuid()"))
-  created_at      DateTime @default(now())
   from_account_id String
+  from            Account  @relation(fields: [from_account_id], references: [id])
+  created_at      DateTime @default(now())
   to_account_id   String
+
+  @@unique([from_account_id, to_account_id])
 }
 
 model Favorite {

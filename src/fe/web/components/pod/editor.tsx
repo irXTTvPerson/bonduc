@@ -56,11 +56,13 @@ const RenderForm = () => {
             {...register("body", { required: true })}
           ></textarea>
         </div>
-        公開範囲: 
+        公開範囲:
         <select {...register("v", { required: true })}>
           <option value={"anyone"}>誰でも</option>
           <option value={"login"}>ログインユーザー</option>
-          <option value={"global"} selected>連合</option>
+          <option value={"global"} selected>
+            連合
+          </option>
           <option value={"local"}>ローカル</option>
           <option value={"following"}>フォローしてる人</option>
           <option value={"follower"}>フォロワー</option>

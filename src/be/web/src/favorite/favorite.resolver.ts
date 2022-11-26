@@ -12,64 +12,24 @@ export class FavoriteResolver {
   @Mutation(() => ResultObject)
   async postFavorite(
     @SessionValidater() account: PrismaAccount,
-    @Args("target_pod_id", { type: () => String }) target_pod_id: string
+    @Args("pod_id", { type: () => String }) pod_id: string
   ) {
     const res = new ResultObject();
     try {
       const pod = await prisma.pod.findUnique({
-        select: {
-          id: true,
-          account_id: true,
-          favorite_count: true,
-          from: {
-            select: {
-              id: true
-            }
-          }
-        },
-        where: {
-          id: target_pod_id
-        }
+        select: { favorite_count: true },
+        where: { id: pod_id }
       });
-      if (!pod) {
-        this.logger.error(`postFavorite: pod ${target_pod_id} not found`);
-        res.value = false;
-        return res;
-      }
-      const f = await prisma.favorite.findFirst({
-        where: {
-          AND: {
-            account_id: account.id,
-            pod_id: target_pod_id
-          }
-        }
-      });
-      if (f) {
-        this.logger.error(`postFavorite: favorite already exists`);
-        res.value = false;
-        return res;
-      }
       await prisma.$transaction([
         prisma.favorite.create({
           data: {
-            account_id: account.id,
-            pod_id: target_pod_id
-          }
-        }),
-        prisma.notification.create({
-          data: {
-            type: "liked",
-            from_account_id: account.id,
-            to_account_id: pod.from.id
+            pod_id: pod_id,
+            account_id: account.id
           }
         }),
         prisma.pod.update({
-          where: {
-            id: pod.id
-          },
-          data: {
-            favorite_count: pod.favorite_count + 1
-          }
+          where: { id: pod_id },
+          data: { favorite_count: pod.favorite_count + 1 }
         })
       ]);
       res.value = true;
@@ -84,46 +44,23 @@ export class FavoriteResolver {
   @Mutation(() => ResultObject)
   async undoFavorite(
     @SessionValidater() account: PrismaAccount,
-    @Args("target_pod_id", { type: () => String }) target_pod_id: string
+    @Args("pod_id", { type: () => String }) pod_id: string
   ) {
     const res = new ResultObject();
     try {
       const pod = await prisma.pod.findUnique({
-        select: {
-          id: true,
-          favorite_count: true
-        },
-        where: {
-          id: target_pod_id
-        }
+        select: { favorite_count: true },
+        where: { id: pod_id }
       });
-      if (!pod) {
-        this.logger.error(`undoFavorite: pod ${target_pod_id} not found`);
-        res.value = false;
-        return res;
-      }
-      const f = await prisma.favorite.findFirst({
-        where: {
-          AND: {
-            account_id: account.id,
-            pod_id: target_pod_id
-          }
-        }
+      const fav = await prisma.favorite.findFirst({
+        select: { id: true },
+        where: { pod_id: pod_id, account_id: account.id }
       });
-      if (!f) {
-        this.logger.error(`undoFavorite: favorite not found`);
-        res.value = false;
-        return res;
-      }
       await prisma.$transaction([
-        prisma.favorite.delete({ where: { id: f.id } }),
+        prisma.favorite.delete({ where: { id: fav.id } }),
         prisma.pod.update({
-          where: {
-            id: pod.id
-          },
-          data: {
-            favorite_count: pod.favorite_count - 1
-          }
+          where: { id: pod_id },
+          data: { favorite_count: pod.favorite_count - 1 }
         })
       ]);
       res.value = true;

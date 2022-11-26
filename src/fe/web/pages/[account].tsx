@@ -23,7 +23,7 @@ query($identifier_name: String!) {
     bio
   }
   hasFollowRequestSent(identifier_name: $identifier_name) {
-    status
+    value
   }
   isFollowing(identifier_name: $identifier_name) {
     value
@@ -37,7 +37,7 @@ query($identifier_name: String!) {
 const queryFollowRequest = `
 mutation($identifier_name: String!) {
   createFollowRequest(identifier_name: $identifier_name) {
-    status
+    value
   }
 }
 `
@@ -64,7 +64,8 @@ class AccountRender {
     screen_name: "",
     identifier_name: "",
     header_uri: "",
-    icon_uri: ""
+    icon_uri: "",
+    account_unique_uri: ""
   }
 
   constructor(setResult: SetState) {
@@ -99,8 +100,8 @@ class AccountRender {
 
       const gql = new GqlClient()
       await gql.fetch({ identifier_name: this.account?.identifier_name }, queryFollowRequest)
-      const ret = gql.res.createFollowRequest as FollowRequest | null
-      if (ret?.status === "requested") {
+      const ret = gql.res.createFollowRequest as ResultObject
+      if (ret.value) {
         this.followStatus = "send follow request success"
         this.hasFollowRequestSent = true
       } else {
@@ -155,7 +156,7 @@ class AccountRender {
       const gql = new GqlClient()
       await gql.fetch({ identifier_name: identifier_name }, query)
       const a = gql.res?.getAccount as Account | null
-      const n = gql.res?.hasFollowRequestSent as FollowRequest | null
+      const n = gql.res?.hasFollowRequestSent as ResultObject
       const f = gql.res?.isFollowing as ResultObject
       const m = gql.res?.isMe as ResultObject
       if (!a || gql.err) {
@@ -163,7 +164,7 @@ class AccountRender {
       } else {
         this.account = a
         this.is_me = m.value
-        if (!this.is_me && n?.status === "requested") {
+        if (!this.is_me && n.value) {
           this.hasFollowRequestSent = true
         }
         if (f.value) {
