@@ -28,10 +28,12 @@ export class AuthService {
         this.logger.warn(`storeSessionAndAccount: account ${arg.email}, ${arg.password} not found`);
         return null;
       }
-      const key = randomUUID();
+      const uuid = randomUUID();
       const val = JSON.stringify(account);
-      await redis.set(key, val, { EX: Config.redis.expire });
-      return key;
+      await redis.set(`session/${uuid}`, val, { EX: Config.redis.expire });
+      // 他人のaccount id でもsessionを辿ってキャッシュを更新できるようにする
+      await redis.set(`account/${account.id}`, uuid, { EX: Config.redis.expire });
+      return uuid;
     } catch (e) {
       this.logger.error(`storeSessionAndAccount: failed due to ${e}`);
       return null;

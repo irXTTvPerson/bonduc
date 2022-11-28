@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma";
 import { SessionValidater } from "../auth/gql.strategy";
 import { Account } from "@prisma/client";
 import { Logger } from "@nestjs/common";
+import { redis } from "../lib/redis";
 
 @Resolver()
 export class FollowResolver {
@@ -43,10 +44,15 @@ export class FollowResolver {
     const ret = new ResultObject();
     try {
       const to_account = await prisma.account.findUnique({
-        select: { id: true },
+        select: { id: true, follower_count: true },
         where: { identifier_name: identifier_name }
       });
-      const findOrDeleteAcceptRejectCondition = {
+      const me = await prisma.account.findUnique({
+        select: { following_count: true },
+        where: { id: account.id }
+      });
+
+      const deleteAcceptRejectCondition = {
         where: {
           from_account_id_to_account_id: {
             from_account_id: to_account.id,
@@ -62,54 +68,115 @@ export class FollowResolver {
           }
         }
       };
-      const followDeleteCondition = {
-        where: {
-          from_account_id_to_account_id: {
-            from_account_id: account.id,
-            to_account_id: to_account.id
-          }
-        }
+      const decrementFollowerCondition = {
+        where: { id: to_account.id },
+        data: { follower_count: to_account.follower_count - 1 }
       };
-      const hasReject = await prisma.rejectFollowRequest.findUnique(
-        findOrDeleteAcceptRejectCondition
-      );
-      const hasAccept = await prisma.acceptFollowRequest.findUnique(
-        findOrDeleteAcceptRejectCondition
-      );
+      const decrementFollowingCondition = {
+        where: { id: account.id },
+        data: { following_count: me.following_count - 1 }
+      };
 
-      if (hasReject && hasAccept) {
-        const [r1, r2, r3, r4] = await prisma.$transaction([
-          prisma.rejectFollowRequest.delete(findOrDeleteAcceptRejectCondition),
-          prisma.acceptFollowRequest.delete(findOrDeleteAcceptRejectCondition),
-          prisma.follow.delete(followDeleteCondition),
-          prisma.notifyFollowed.delete(deleteCondition)
+      const hasReject = (await prisma.rejectFollowRequest.findUnique(deleteAcceptRejectCondition))
+        ? true
+        : false;
+      const hasAccept = (await prisma.acceptFollowRequest.findUnique(deleteAcceptRejectCondition))
+        ? true
+        : false;
+      const hasFollowRequest = (await prisma.followRequest.findUnique(deleteCondition))
+        ? true
+        : false;
+
+      // キャッシュ上のアカウント情報を更新する
+      const session_to = await redis.get(`account/${to_account.id}`);
+      const session_me = await redis.get(`account/${account.id}`);
+
+      if (hasFollowRequest && hasReject && hasAccept) {
+        const result = await prisma.$transaction([
+          prisma.followRequest.delete(deleteCondition),
+          prisma.rejectFollowRequest.delete(deleteAcceptRejectCondition),
+          prisma.acceptFollowRequest.delete(deleteAcceptRejectCondition),
+          prisma.follow.delete(deleteCondition),
+          prisma.notifyFollowed.delete(deleteCondition),
+          prisma.account.update(decrementFollowerCondition),
+          prisma.account.update(decrementFollowingCondition)
         ]);
-        if (r1 && r2 && r3 && r4) ret.value = true;
-        else ret.value = false;
+        await redis.set(`session/${session_to}`, JSON.stringify(result[5]));
+        await redis.set(`session/${session_me}`, JSON.stringify(result[6]));
+      } else if (hasFollowRequest && hasReject) {
+        const result = await prisma.$transaction([
+          prisma.followRequest.delete(deleteCondition),
+          prisma.rejectFollowRequest.delete(deleteAcceptRejectCondition),
+          prisma.follow.delete(deleteCondition),
+          prisma.notifyFollowed.delete(deleteCondition),
+          prisma.account.update(decrementFollowerCondition),
+          prisma.account.update(decrementFollowingCondition)
+        ]);
+        await redis.set(`session/${session_to}`, JSON.stringify(result[4]));
+        await redis.set(`session/${session_me}`, JSON.stringify(result[5]));
+      } else if (hasFollowRequest && hasAccept) {
+        const result = await prisma.$transaction([
+          prisma.followRequest.delete(deleteCondition),
+          prisma.acceptFollowRequest.delete(deleteAcceptRejectCondition),
+          prisma.follow.delete(deleteCondition),
+          prisma.notifyFollowed.delete(deleteCondition),
+          prisma.account.update(decrementFollowerCondition),
+          prisma.account.update(decrementFollowingCondition)
+        ]);
+        await redis.set(`session/${session_to}`, JSON.stringify(result[4]));
+        await redis.set(`session/${session_me}`, JSON.stringify(result[5]));
+      } else if (hasReject && hasAccept) {
+        const result = await prisma.$transaction([
+          prisma.rejectFollowRequest.delete(deleteAcceptRejectCondition),
+          prisma.acceptFollowRequest.delete(deleteAcceptRejectCondition),
+          prisma.follow.delete(deleteCondition),
+          prisma.notifyFollowed.delete(deleteCondition),
+          prisma.account.update(decrementFollowerCondition),
+          prisma.account.update(decrementFollowingCondition)
+        ]);
+        await redis.set(`session/${session_to}`, JSON.stringify(result[4]));
+        await redis.set(`session/${session_me}`, JSON.stringify(result[5]));
+      } else if (hasFollowRequest) {
+        const result = await prisma.$transaction([
+          prisma.followRequest.delete(deleteCondition),
+          prisma.follow.delete(deleteCondition),
+          prisma.notifyFollowed.delete(deleteCondition),
+          prisma.account.update(decrementFollowerCondition),
+          prisma.account.update(decrementFollowingCondition)
+        ]);
+        await redis.set(`session/${session_to}`, JSON.stringify(result[3]));
+        await redis.set(`session/${session_me}`, JSON.stringify(result[4]));
       } else if (hasReject) {
-        const [r1, r2, r3] = await prisma.$transaction([
-          prisma.rejectFollowRequest.delete(findOrDeleteAcceptRejectCondition),
-          prisma.follow.delete(followDeleteCondition),
-          prisma.notifyFollowed.delete(deleteCondition)
+        const result = await prisma.$transaction([
+          prisma.rejectFollowRequest.delete(deleteAcceptRejectCondition),
+          prisma.follow.delete(deleteCondition),
+          prisma.notifyFollowed.delete(deleteCondition),
+          prisma.account.update(decrementFollowerCondition),
+          prisma.account.update(decrementFollowingCondition)
         ]);
-        if (r1 && r2 && r3) ret.value = true;
-        else ret.value = false;
+        await redis.set(`session/${session_to}`, JSON.stringify(result[3]));
+        await redis.set(`session/${session_me}`, JSON.stringify(result[4]));
       } else if (hasAccept) {
-        const [r1, r2, r3] = await prisma.$transaction([
-          prisma.acceptFollowRequest.delete(findOrDeleteAcceptRejectCondition),
-          prisma.follow.delete(followDeleteCondition),
-          prisma.notifyFollowed.delete(deleteCondition)
+        const result = await prisma.$transaction([
+          prisma.acceptFollowRequest.delete(deleteAcceptRejectCondition),
+          prisma.follow.delete(deleteCondition),
+          prisma.notifyFollowed.delete(deleteCondition),
+          prisma.account.update(decrementFollowerCondition),
+          prisma.account.update(decrementFollowingCondition)
         ]);
-        if (r1 && r2 && r3) ret.value = true;
-        else ret.value = false;
+        await redis.set(`session/${session_to}`, JSON.stringify(result[3]));
+        await redis.set(`session/${session_me}`, JSON.stringify(result[4]));
       } else {
-        const [r1, r2] = await prisma.$transaction([
-          prisma.follow.delete(followDeleteCondition),
-          prisma.notifyFollowed.delete(deleteCondition)
+        const result = await prisma.$transaction([
+          prisma.follow.delete(deleteCondition),
+          prisma.notifyFollowed.delete(deleteCondition),
+          prisma.account.update(decrementFollowerCondition),
+          prisma.account.update(decrementFollowingCondition)
         ]);
-        if (r1 && r2) ret.value = true;
-        else ret.value = false;
+        await redis.set(`session/${session_to}`, JSON.stringify(result[2]));
+        await redis.set(`session/${session_me}`, JSON.stringify(result[3]));
       }
+      ret.value = true;
     } catch (e) {
       this.logger.error(e);
       ret.value = false;

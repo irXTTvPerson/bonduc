@@ -43,7 +43,11 @@ export class NotificationResolver {
           });
         }
       }
-      return ret;
+
+      ret.sort((a, b) => {
+        return a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0;
+      });
+      return ret.slice(0, Config.limit.notification.find_at_once);
     } catch (e) {
       this.logger.error(e);
       return null;

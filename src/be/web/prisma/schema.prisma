@@ -25,6 +25,7 @@ model Account {
   id                  String                @id @unique @default(dbgenerated("gen_random_uuid()"))
   created_at          DateTime              @default(now())
   updated_at          DateTime?             @updatedAt
+  last_pod_at         DateTime?
   email               String                @unique
   password            String
   ip_address          Json
@@ -38,6 +39,9 @@ model Account {
   icon_uri            String                @default("/img/default_icon.png")
   account_unique_uri  String                @unique
   bio                 String?
+  pod_count           Int                   @default(0)
+  following_count     Int                   @default(0)
+  follower_count      Int                   @default(0)
   Pod                 Pod[]
   Favorite            Favorite[]
   DpPod               DpPod[]

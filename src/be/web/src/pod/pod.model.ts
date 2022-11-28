@@ -10,15 +10,6 @@ export class Pod {
   @Field()
   created_at: Date = new Date("2000-01-01T00:00:00");
 
-  @Field()
-  updated_at: Date = new Date("2000-01-01T00:00:00");
-
-  @Field(() => [String])
-  to: string[] = [""];
-
-  @Field(() => [String], { nullable: "itemsAndList" })
-  cc?: string[] = null;
-
   @Field(() => Account)
   from: Account = new Account();
 
@@ -29,10 +20,25 @@ export class Pod {
   favorite_count: number = 0;
 
   @Field()
+  dp_count: number = 0;
+
+  @Field()
   favorited: boolean = false;
 
-  @Field({ nullable: true })
-  rp_from_id: string = null;
+  @Field()
+  visibility: PodVisibility = "global";
+}
+
+@ObjectType()
+export class DpPod {
+  @Field()
+  created_at: Date = new Date("2000-01-01T00:00:00");
+
+  @Field(() => Account)
+  from: Account = new Account();
+
+  @Field(() => Pod)
+  body: Pod = new Pod();
 
   @Field()
   visibility: PodVisibility = "global";

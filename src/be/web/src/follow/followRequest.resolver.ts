@@ -4,6 +4,7 @@ import { SessionValidater } from "../auth/gql.strategy";
 import { Logger } from "@nestjs/common";
 import { Account } from "@prisma/client";
 import { ResultObject } from "../result/result.model";
+import { redis } from "../lib/redis";
 
 @Resolver()
 export class FollowRequestResolver {
@@ -63,19 +64,14 @@ export class FollowRequestResolver {
     const ret = new ResultObject();
     try {
       const from_account = await prisma.account.findUnique({
-        select: { id: true },
+        select: { id: true, following_count: true },
         where: { identifier_name: identifier_name }
       });
-      const [r1, r2, r3, r4] = await prisma.$transaction([
-        // 自分宛てフォロリクを消す
-        prisma.followRequest.delete({
-          where: {
-            from_account_id_to_account_id: {
-              from_account_id: from_account.id,
-              to_account_id: account.id
-            }
-          }
-        }),
+      const me = await prisma.account.findUnique({
+        select: { follower_count: true },
+        where: { id: account.id }
+      });
+      const result = await prisma.$transaction([
         // フォロリク許可を通知
         prisma.acceptFollowRequest.create({
           data: { from_account_id: account.id, to_account_id: from_account.id }
@@ -87,10 +83,24 @@ export class FollowRequestResolver {
         // 自分宛てにフォローされた通知
         prisma.notifyFollowed.create({
           data: { from_account_id: from_account.id, to_account_id: account.id }
+        }),
+        // 相手のフォローが増える
+        prisma.account.update({
+          where: { id: from_account.id },
+          data: { following_count: from_account.following_count + 1 }
+        }),
+        // 自分のフォロワーが増える
+        prisma.account.update({
+          where: { id: account.id },
+          data: { follower_count: me.follower_count + 1 }
         })
       ]);
-      if (r1 && r2 && r3 && r4) ret.value = true;
-      else ret.value = false;
+      // キャッシュ上のアカウント情報を更新する
+      const session_from = await redis.get(`account/${from_account.id}`);
+      const session_me = await redis.get(`account/${account.id}`);
+      await redis.set(`session/${session_from}`, JSON.stringify(result[3]));
+      await redis.set(`session/${session_me}`, JSON.stringify(result[4]));
+      ret.value = true;
     } catch (e) {
       this.logger.error(e);
       ret.value = false;
@@ -133,7 +143,7 @@ export class FollowRequestResolver {
         });
       }
 
-      const [r1, r2] = await prisma.$transaction([
+      await prisma.$transaction([
         // 自分宛てフォロリクを消す
         prisma.followRequest.delete({
           where: {
@@ -148,8 +158,7 @@ export class FollowRequestResolver {
           data: { from_account_id: account.id, to_account_id: from_account.id }
         })
       ]);
-      if (r1 && r2) ret.value = true;
-      else ret.value = false;
+      ret.value = true;
     } catch (e) {
       this.logger.error(e);
       ret.value = false;

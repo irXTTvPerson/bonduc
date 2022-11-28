@@ -17,7 +17,7 @@ export const SessionValidater = createParamDecorator(
       throw new UnauthorizedException();
     }
 
-    const account = await redis.get(token);
+    const account = await redis.get(`session/${token}`);
     if (!account) {
       console.error("account validate failed");
       if (Config.gql.logging) {

@@ -123,6 +123,7 @@ class AccountRender {
       const ret = gql.res.unFollow as ResultObject
       if (ret.value) {
         this.isFollowing = false
+        this.hasFollowRequestSent = false
       } else {
         this.followButton = <>unfollow failed</>
       }

@@ -10,13 +10,10 @@ import Image from "next/image"
 const commonPodResult = `
     created_at
     body
-    cc
-    to
     id
     favorited
     favorite_count
     visibility
-    rp_from_id
     from {
       identifier_name
       screen_name
