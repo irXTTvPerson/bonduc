@@ -140,8 +140,9 @@ export class Mixer {
     }) as HomeTimeline[];
 
     const endtime = performance.now();
-    console.log("getHTL elapsed: ", endtime - starttime);
-
+    if (Config.isLocalEnv) {
+      console.log("getHTL elapsed: ", endtime - starttime);
+    }
     return result;
   }
 }

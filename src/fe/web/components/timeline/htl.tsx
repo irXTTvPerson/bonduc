@@ -136,7 +136,11 @@ class Render {
   renderDP(dp: DpPod) {
     return (
       <>
-        {dp.from.screen_name}さんがDPしました
+        <span className={styles.dp_disp}>
+          <Link href={dp.from.account_unique_uri} target="_blank">
+            {dp.from.screen_name} さんがDPしました ⇄
+          </Link>
+        </span>
         {this.renderPod(dp.body)}
       </>
     )
@@ -148,15 +152,15 @@ class Render {
         <span className={styles.podContainer /* header */}>
           <div className={styles.expander}>
             <span className={styles.icon /* icon */}>
-              <Link href={pod.from.icon_uri}>
-                <Image src={pod.from.icon_uri} width={48} height={48} alt="icon" />
+              <Link href={pod.from.icon_uri} target="_blank">
+                <Image src={pod.from.icon_uri} width={56} height={56} alt="icon" />
               </Link>
             </span>
             <span className={styles.name /* name */}>
-              <Link href={pod.from.account_unique_uri}>
-                <span className={styles.separator}>
-                  {`${pod.from.screen_name}@${pod.from.identifier_name}`}
-                </span>
+              <Link href={pod.from.account_unique_uri} target="_blank">
+                {pod.from.screen_name}
+                {pod.mypod ? <span className={styles.mypod}>@</span> : <>@</>}
+                {pod.from.identifier_name}
               </Link>
             </span>
             <span className={styles.timestamp /* timestamp */}>

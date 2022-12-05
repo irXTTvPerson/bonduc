@@ -6,13 +6,20 @@
   margin: 0 1em 0 0;
 }
 
-.separator {
-  margin: 0 0.25em 0 0;
+.dp_disp {
+  color: #baaaaa;
+}
+
+.mypod {
+  color: #907777;
 }
 
 .article {
-  width: 40%;
-  margin: 0 0 1em 0;
+  width: 45%;
+  margin: 0 0 0.25em 0;
+  padding: 1em 1em 0 1em;
+  background-color: #fcfbfb;
+  border-radius: 0.5em;
 }
 
 .podContainer {
@@ -44,6 +51,6 @@
 
 .message {
   width: 90%;
-  margin: 1em 0 1em 0;
+  margin: 0 0 1em 0;
   word-break: break-all;
 }
