@@ -1,19 +1,5 @@
 import { Account } from "./account"
 
-export type Pod = {
-  id: string
-  created_at: string
-  updated_at?: string
-  to: string[]
-  cc?: string[]
-  from: Account
-  body: string
-  favorite_count: number
-  favorited: boolean
-  visibility: PodVisibility
-  rp_from_id?: string
-}
-
 export type PodVisibility =
   | "anyone"
   | "login"
@@ -26,3 +12,22 @@ export type PodVisibility =
   | "list"
   | "password"
   | "myself"
+
+export type Pod = {
+  id: string
+  created_at: string
+  from: Account
+  body: string
+  favorite_count: number
+  dp_count: number
+  favorited: boolean
+  visibility: PodVisibility
+  mypod: boolean
+}
+
+export type DpPod = {
+  created_at: string
+  from: Account
+  body: Pod
+  visibility: PodVisibility
+}

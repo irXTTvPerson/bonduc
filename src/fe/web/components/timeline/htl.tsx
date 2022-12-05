@@ -1,31 +1,58 @@
 import type { NextPage } from "next"
 import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import { GqlClient } from "../../components/common/gql"
-import { Pod } from "../../@types/pod"
+import { DpPod, Pod } from "../../@types/pod"
+import { Timeline } from "../../@types/htl"
 import styles from "../../styles/HTL.module.css"
 import { ResultObject } from "../../@types/result"
 import Link from "next/link"
 import Image from "next/image"
 
-const commonPodResult = `
-    created_at
-    body
-    id
-    favorited
-    favorite_count
-    visibility
-    from {
-      identifier_name
-      screen_name
-      icon_uri
-      account_unique_uri
-    }
-`
-
 const queryHTL = `
 {
-  pods(to: ["https://www.w3.org/ns/activitystreams#Public"]) {
-    ${commonPodResult}
+  getHTL {
+    type
+    pod {
+      id
+      created_at
+      body
+      favorited
+      favorite_count
+      dp_count
+      visibility
+      mypod
+      from {
+        identifier_name
+        screen_name
+        icon_uri
+        account_unique_uri
+      }
+    }
+    dpPod {
+      created_at
+      from {
+        identifier_name
+        screen_name
+        icon_uri
+        account_unique_uri
+      }
+      body {
+        id
+        created_at
+        body
+        favorited
+        favorite_count
+        dp_count
+        visibility
+        mypod
+        from {
+          identifier_name
+          screen_name
+          icon_uri
+          account_unique_uri
+        }
+      }
+    }
   }
 }
 `
@@ -62,7 +89,7 @@ const toDateString = (date: string) => {
 class Render {
   setResult: Dispatch<SetStateAction<JSX.Element[]>>
   result: JSX.Element[] = []
-  pods: Pod[] = []
+  htl: Timeline[] = []
 
   Fav(pod: Pod) {
     ;(async () => {
@@ -106,11 +133,11 @@ class Render {
     })()
   }
 
-  renderDP(pod: Pod) {
+  renderDP(dp: DpPod) {
     return (
       <>
-        {pod.from.screen_name}さんがDPしました
-        {this.renderPod(pod)}
+        {dp.from.screen_name}さんがDPしました
+        {this.renderPod(dp.body)}
       </>
     )
   }
@@ -127,8 +154,9 @@ class Render {
             </span>
             <span className={styles.name /* name */}>
               <Link href={pod.from.account_unique_uri}>
-                <span className={styles.separator}>{pod.from.screen_name}</span>
-                <span>@{pod.from.identifier_name}</span>
+                <span className={styles.separator}>
+                  {`${pod.from.screen_name}@${pod.from.identifier_name}`}
+                </span>
               </Link>
             </span>
             <span className={styles.timestamp /* timestamp */}>
@@ -173,10 +201,10 @@ class Render {
     )
   }
 
-  timelineTemplate(pod: Pod, index: number) {
+  timelineTemplate(t: Timeline, index: number) {
     return (
       <article className={styles.article} key={index}>
-        {this.renderPod(pod)}
+        {t.type === "pod" ? this.renderPod(t.pod as Pod) : this.renderDP(t.dpPod as DpPod)}
       </article>
     )
   }
@@ -187,7 +215,7 @@ class Render {
 
   render() {
     this.result = []
-    this.pods.forEach((pod, i) => {
+    this.htl.forEach((pod, i) => {
       this.result.push(this.timelineTemplate(pod, i))
     })
     this.setResult(this.result)
@@ -200,9 +228,9 @@ class Render {
       if (gql.err) {
         for (const i of gql.err) this.result.push(<>{i.message}</>)
       } else {
-        this.pods = gql.res?.pods as Pod[]
-        this.pods.forEach((pod, i) => {
-          this.result.push(this.timelineTemplate(pod, i))
+        this.htl = gql.res?.getHTL as Timeline[]
+        this.htl.forEach((t, i) => {
+          this.result.push(this.timelineTemplate(t, i))
         })
       }
       this.render()

@@ -11,6 +11,7 @@ import { FollowRequestResolver } from "./follow/followRequest.resolver";
 import { NotificationResolver } from "./notification/notification.resolver";
 import { FollowResolver } from "./follow/follow.resolver";
 import { FavoriteResolver } from "./favorite/favorite.resolver";
+import { HTLResolver } from "./timeline/htl.resolver";
 
 @Module({
   imports: [
@@ -33,7 +34,8 @@ import { FavoriteResolver } from "./favorite/favorite.resolver";
     FollowRequestResolver,
     FollowResolver,
     NotificationResolver,
-    FavoriteResolver
+    FavoriteResolver,
+    HTLResolver
   ]
 })
 export class AppModule {}

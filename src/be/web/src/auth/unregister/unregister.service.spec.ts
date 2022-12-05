@@ -17,7 +17,11 @@ describe("UnregisterService", () => {
     password: "password",
     screen_name: "screen",
     identifier_name: "identifier",
-    account_unique_uri: "hoge"
+    account_unique_uri: "hoge",
+    inbox: `inbox`,
+    outbox: `outbox`,
+    follower_uri: `follower`,
+    following_uri: `following`
   };
 
   beforeEach(async () => {

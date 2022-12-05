@@ -27,6 +27,9 @@ export class Pod {
 
   @Field()
   visibility: PodVisibility = "global";
+
+  @Field()
+  mypod: boolean = false;
 }
 
 @ObjectType()

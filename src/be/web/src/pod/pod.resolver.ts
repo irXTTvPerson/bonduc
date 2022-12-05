@@ -1,7 +1,6 @@
-import { Resolver, Query, Args, Mutation } from "@nestjs/graphql";
+import { Resolver, Args, Mutation } from "@nestjs/graphql";
 import { Pod } from "./pod.model";
 import { prisma } from "../lib/prisma";
-import { Config } from "../config";
 import { SessionValidater } from "../auth/gql.strategy";
 import { Account, PodVisibility } from "@prisma/client";
 import { Logger } from "@nestjs/common";
@@ -12,7 +11,7 @@ import { redis } from "../lib/redis";
 export class PodResolver {
   private readonly logger = new Logger("PodResolver");
 
-  convertVisibilityTo(visibility: PodVisibility, account: Account) {
+  private convertVisibilityTo(visibility: PodVisibility, account: Account) {
     let to = [];
     switch (visibility) {
       default:
@@ -50,8 +49,8 @@ export class PodResolver {
     return to;
   }
 
-  convertVisibilityCc(visibility: PodVisibility, account: Account) {
-    let cc = null;
+  private convertVisibilityCc(visibility: PodVisibility, account: Account) {
+    let cc = [];
     switch (visibility) {
       case "login":
       case "password":
@@ -65,47 +64,6 @@ export class PodResolver {
         break;
     }
     return cc;
-  }
-
-  @Query(() => [Pod], { nullable: "itemsAndList" })
-  async pods(
-    @SessionValidater() account,
-    @Args("to", { type: () => [String], nullable: "itemsAndList" }) to?: string[],
-    @Args("cc", { type: () => [String], nullable: "itemsAndList" }) cc?: string[],
-    @Args("created_at", { type: () => Date, nullable: true }) created_at?: Date,
-    @Args("gt", { nullable: true }) gt?: boolean,
-    @Args("lt", { nullable: true }) lt?: boolean
-  ) {
-    try {
-      const pods = await prisma.pod.findMany({
-        where: {
-          OR: {
-            to: { array_contains: to },
-            cc: { array_contains: cc },
-            created_at: gt ? { gt: created_at } : lt ? { lt: created_at } : created_at
-          }
-        },
-        include: { from: true },
-        take: Config.limit.pods.find_at_once,
-        orderBy: { created_at: "desc" }
-      });
-      for (const pod of pods) {
-        const fav = await prisma.favorite.findFirst({
-          where: {
-            AND: {
-              account_id: account.id,
-              pod_id: pod.id
-            }
-          }
-        });
-        // podに存在しないプロパティを強引に追加する
-        pod["favorited"] = fav ? true : false;
-      }
-      return pods;
-    } catch (e) {
-      this.logger.error(e);
-      return null;
-    }
   }
 
   @Mutation(() => ResultObject)
@@ -154,12 +112,10 @@ export class PodResolver {
   ) {
     const res = new ResultObject();
     try {
-      const pod = await prisma.pod.findUnique({ where: { id: pod_id } });
-      if (!pod) {
-        this.logger.error(`createDpPod: pod not found`);
-        res.value = false;
-        return res;
-      }
+      const pod = await prisma.pod.findUnique({
+        where: { id: pod_id },
+        select: { dp_count: true }
+      });
       const count = await prisma.account.findUnique({
         where: { id: account.id },
         select: { pod_count: true }
@@ -177,6 +133,10 @@ export class PodResolver {
         prisma.account.update({
           where: { id: account.id },
           data: { pod_count: count.pod_count + 1, last_pod_at: new Date() }
+        }),
+        prisma.pod.update({
+          where: { id: pod_id },
+          data: { dp_count: pod.dp_count + 1 }
         })
       ]);
       const session_me = await redis.get(`account/${account.id}`);

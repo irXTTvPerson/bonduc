@@ -52,12 +52,15 @@ export class FavoriteResolver {
         select: { favorite_count: true },
         where: { id: pod_id }
       });
-      const fav = await prisma.favorite.findFirst({
-        select: { id: true },
-        where: { pod_id: pod_id, account_id: account.id }
-      });
       await prisma.$transaction([
-        prisma.favorite.delete({ where: { id: fav.id } }),
+        prisma.favorite.delete({
+          where: {
+            pod_id_account_id: {
+              pod_id: pod_id,
+              account_id: account.id
+            }
+          }
+        }),
         prisma.pod.update({
           where: { id: pod_id },
           data: { favorite_count: pod.favorite_count - 1 }

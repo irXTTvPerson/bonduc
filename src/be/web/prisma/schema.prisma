@@ -28,7 +28,7 @@ model Account {
   last_pod_at         DateTime?
   email               String                @unique
   password            String
-  ip_address          Json
+  ip_address          String[]
   screen_name         String
   inbox               String
   outbox              String
@@ -70,8 +70,8 @@ model Pod {
   id             String        @id @unique @default(dbgenerated("gen_random_uuid()"))
   created_at     DateTime      @default(now())
   updated_at     DateTime?     @updatedAt
-  to             Json // uri
-  cc             Json? // uri
+  to             String[]
+  cc             String[]
   from           Account       @relation(fields: [account_id], references: [id])
   account_id     String
   body           String
@@ -84,8 +84,8 @@ model Pod {
 
 model DpPod {
   created_at DateTime      @default(now())
-  to         Json // uri
-  cc         Json? // uri
+  to         String[]
+  cc         String[]
   from       Account       @relation(fields: [account_id], references: [id])
   account_id String
   body       Pod           @relation(fields: [pod_id], references: [id])
@@ -153,10 +153,11 @@ model Follow {
 }
 
 model Favorite {
-  id         String   @id @unique @default(dbgenerated("gen_random_uuid()"))
   created_at DateTime @default(now())
   to         Pod      @relation(fields: [pod_id], references: [id])
   from       Account  @relation(fields: [account_id], references: [id])
   pod_id     String
   account_id String
+
+  @@unique([pod_id, account_id])
 }
