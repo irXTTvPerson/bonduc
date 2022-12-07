@@ -12,7 +12,7 @@ export class FavoriteResolver {
   @Mutation(() => ResultObject)
   async postFavorite(
     @SessionValidater() account: PrismaAccount,
-    @Args("pod_id", { type: () => String }) pod_id: string
+    @Args("rp_id", { type: () => String }) pod_id: string
   ) {
     const res = new ResultObject();
     try {
@@ -23,7 +23,7 @@ export class FavoriteResolver {
       await prisma.$transaction([
         prisma.favorite.create({
           data: {
-            pod_id: pod_id,
+            rp_id: pod_id,
             account_id: account.id
           }
         }),
@@ -44,7 +44,7 @@ export class FavoriteResolver {
   @Mutation(() => ResultObject)
   async undoFavorite(
     @SessionValidater() account: PrismaAccount,
-    @Args("pod_id", { type: () => String }) pod_id: string
+    @Args("rp_id", { type: () => String }) pod_id: string
   ) {
     const res = new ResultObject();
     try {
@@ -55,8 +55,8 @@ export class FavoriteResolver {
       await prisma.$transaction([
         prisma.favorite.delete({
           where: {
-            pod_id_account_id: {
-              pod_id: pod_id,
+            rp_id_account_id: {
+              rp_id: pod_id,
               account_id: account.id
             }
           }

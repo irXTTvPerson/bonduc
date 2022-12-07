@@ -107,13 +107,13 @@ export class PodResolver {
   @Mutation(() => ResultObject)
   async createDpPod(
     @SessionValidater() account: Account,
-    @Args("pod_id", { type: () => String }) pod_id: string,
+    @Args("rp_id", { type: () => String }) rp_id: string,
     @Args("visibility", { type: () => PodVisibility }) visibility: PodVisibility
   ) {
     const res = new ResultObject();
     try {
       const pod = await prisma.pod.findUnique({
-        where: { id: pod_id },
+        where: { id: rp_id },
         select: { dp_count: true }
       });
       const count = await prisma.account.findUnique({
@@ -126,7 +126,7 @@ export class PodResolver {
             account_id: account.id,
             to: this.convertVisibilityTo(visibility, account),
             cc: this.convertVisibilityCc(visibility, account),
-            pod_id: pod_id,
+            rp_id: rp_id,
             visibility: visibility
           }
         }),
@@ -135,7 +135,7 @@ export class PodResolver {
           data: { pod_count: count.pod_count + 1, last_pod_at: new Date() }
         }),
         prisma.pod.update({
-          where: { id: pod_id },
+          where: { id: rp_id },
           data: { dp_count: pod.dp_count + 1 }
         })
       ]);

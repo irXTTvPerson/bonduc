@@ -26,8 +26,22 @@ export type Pod = {
 }
 
 export type DpPod = {
+  id: string
   created_at: string
   from: Account
-  body: Pod
+  body?: Pod
   visibility: PodVisibility
+}
+
+export type QpPod = {
+  id: string
+  created_at: string
+  from: Account
+  body: string
+  favorite_count: number
+  dp_count: number
+  favorited: boolean
+  visibility: PodVisibility
+  mypod: boolean
+  quote?: Pod
 }

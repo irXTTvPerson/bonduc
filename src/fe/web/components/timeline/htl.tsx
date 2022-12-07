@@ -59,7 +59,7 @@ const queryHTL = `
 
 const queryFav = `
 mutation ($id: String!) {
-  postFavorite(pod_id: $id) {
+  postFavorite(rp_id: $id) {
     value
   }
 }
@@ -67,7 +67,7 @@ mutation ($id: String!) {
 
 const queryUnFav = `
 mutation ($id: String!) {
-  undoFavorite(pod_id: $id) {
+  undoFavorite(rp_id: $id) {
     value
   }
 }
@@ -75,7 +75,7 @@ mutation ($id: String!) {
 
 const queryPostQP = `
 mutation ($id: String!, $v: PodVisibility!) {
-  createDpPod(pod_id: $id, visibility: $v) {
+  createDpPod(rp_id: $id, visibility: $v) {
     value
   }
 }
@@ -141,7 +141,7 @@ class Render {
             {dp.from.screen_name} さんがDPしました ⇄
           </Link>
         </span>
-        {this.renderPod(dp.body)}
+        {dp.body ? this.renderPod(dp.body) : <><br />*** the pod was deleted ***</>}
       </>
     )
   }
@@ -232,7 +232,7 @@ class Render {
       if (gql.err) {
         for (const i of gql.err) this.result.push(<>{i.message}</>)
       } else {
-        this.htl = gql.res?.getHTL as Timeline[]
+        this.htl = gql.res.getHTL as Timeline[]
         this.htl.forEach((t, i) => {
           this.result.push(this.timelineTemplate(t, i))
         })

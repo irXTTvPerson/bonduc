@@ -50,6 +50,7 @@ model Account {
   RejectFollowRequest RejectFollowRequest[]
   NotifyFollowed      NotifyFollowed[]
   Follow              Follow[]
+  QpPod               QpPod[]
 }
 
 enum PodVisibility {
@@ -77,20 +78,35 @@ model Pod {
   body           String
   favorite_count Int           @default(0)
   dp_count       Int           @default(0)
-  Favorite       Favorite[]
   visibility     PodVisibility @default(global)
-  DpPod          DpPod[]
 }
 
 model DpPod {
+  id         String        @id @unique @default(dbgenerated("gen_random_uuid()"))
   created_at DateTime      @default(now())
   to         String[]
   cc         String[]
   from       Account       @relation(fields: [account_id], references: [id])
   account_id String
-  body       Pod           @relation(fields: [pod_id], references: [id])
   visibility PodVisibility @default(global)
-  pod_id     String
+  rp_id      String // podかqpのid
+
+  @@unique([account_id, rp_id])
+}
+
+model QpPod {
+  id             String        @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at     DateTime      @default(now())
+  updated_at     DateTime?     @updatedAt
+  to             String[]
+  cc             String[]
+  from           Account       @relation(fields: [account_id], references: [id])
+  account_id     String
+  body           String
+  favorite_count Int           @default(0)
+  dp_count       Int           @default(0)
+  visibility     PodVisibility @default(global)
+  pod_id         String
 
   @@unique([account_id, pod_id])
 }
@@ -154,10 +170,9 @@ model Follow {
 
 model Favorite {
   created_at DateTime @default(now())
-  to         Pod      @relation(fields: [pod_id], references: [id])
   from       Account  @relation(fields: [account_id], references: [id])
-  pod_id     String
+  rp_id      String // podのidかqpのid
   account_id String
 
-  @@unique([pod_id, account_id])
+  @@unique([rp_id, account_id])
 }
