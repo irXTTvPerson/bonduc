@@ -1,9 +1,8 @@
 import { Logger, Injectable } from "@nestjs/common";
-import { prisma } from "../lib/prisma";
 import { randomUUID } from "crypto";
 import { hash } from "../lib/hash";
-import { redis } from "../lib/redis";
 import { Config } from "../config";
+import { DBService } from "../db/db.service";
 
 export type Payload = {
   token: string;
@@ -14,9 +13,11 @@ export type Payload = {
 export class AuthService {
   private readonly logger = new Logger("AuthService");
 
+  constructor(private readonly dbService: DBService) {}
+
   async login(arg: { email: string; password: string }): Promise<string | null> {
     try {
-      const account = await prisma.account.findFirst({
+      const account = await this.dbService.prisma.account.findFirst({
         where: {
           AND: {
             email: arg.email,
@@ -30,9 +31,9 @@ export class AuthService {
       }
       const uuid = randomUUID();
       const val = JSON.stringify(account);
-      await redis.set(`session/${uuid}`, val, { EX: Config.redis.expire });
+      await this.dbService.redis.set(`session/${uuid}`, val, { EX: Config.redis.expire });
       // 他人のaccount id でもsessionを辿ってキャッシュを更新できるようにする
-      await redis.set(`account/${account.id}`, uuid, { EX: Config.redis.expire });
+      await this.dbService.redis.set(`account/${account.id}`, uuid, { EX: Config.redis.expire });
       return uuid;
     } catch (e) {
       this.logger.error(`storeSessionAndAccount: failed due to ${e}`);

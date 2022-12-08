@@ -1,15 +1,16 @@
 import { Resolver, Args, Mutation } from "@nestjs/graphql";
 import { Pod } from "./pod.model";
-import { prisma } from "../lib/prisma";
-import { SessionValidater } from "../auth/gql.strategy";
+import { SessionValidater, accountValidator } from "../auth/gql.strategy";
 import { Account, PodVisibility } from "@prisma/client";
 import { Logger } from "@nestjs/common";
 import { ResultObject } from "../result/result.model";
-import { redis } from "../lib/redis";
+import { DBService } from "../db/db.service";
 
 @Resolver(Pod)
 export class PodResolver {
   private readonly logger = new Logger("PodResolver");
+
+  constructor(private readonly dbService: DBService) {}
 
   private convertVisibilityTo(visibility: PodVisibility, account: Account) {
     let to = [];
@@ -68,18 +69,19 @@ export class PodResolver {
 
   @Mutation(() => ResultObject)
   async createPod(
-    @SessionValidater() account: Account,
+    @SessionValidater() ctx,
     @Args("body", { type: () => String }) body: string,
     @Args("visibility", { type: () => PodVisibility }) visibility: PodVisibility
   ) {
     const res = new ResultObject();
+    const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      const count = await prisma.account.findUnique({
+      const count = await this.dbService.prisma.account.findUnique({
         where: { id: account.id },
         select: { pod_count: true }
       });
-      const result = await prisma.$transaction([
-        prisma.pod.create({
+      const result = await this.dbService.prisma.$transaction([
+        this.dbService.prisma.pod.create({
           data: {
             account_id: account.id,
             to: this.convertVisibilityTo(visibility, account),
@@ -88,13 +90,13 @@ export class PodResolver {
             visibility: visibility
           }
         }),
-        prisma.account.update({
+        this.dbService.prisma.account.update({
           where: { id: account.id },
           data: { pod_count: count.pod_count + 1, last_pod_at: new Date() }
         })
       ]);
-      const session_me = await redis.get(`account/${account.id}`);
-      await redis.set(`session/${session_me}`, JSON.stringify(result[1]));
+      const session_me = await this.dbService.redis.get(`account/${account.id}`);
+      await this.dbService.redis.set(`session/${session_me}`, JSON.stringify(result[1]));
       res.value = true;
     } catch (e) {
       this.logger.error(e);
@@ -106,22 +108,23 @@ export class PodResolver {
 
   @Mutation(() => ResultObject)
   async createDpPod(
-    @SessionValidater() account: Account,
+    @SessionValidater() ctx,
     @Args("rp_id", { type: () => String }) rp_id: string,
     @Args("visibility", { type: () => PodVisibility }) visibility: PodVisibility
   ) {
     const res = new ResultObject();
+    const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      const pod = await prisma.pod.findUnique({
+      const pod = await this.dbService.prisma.pod.findUnique({
         where: { id: rp_id },
         select: { dp_count: true }
       });
-      const count = await prisma.account.findUnique({
+      const count = await this.dbService.prisma.account.findUnique({
         where: { id: account.id },
         select: { pod_count: true }
       });
-      const result = await prisma.$transaction([
-        prisma.dpPod.create({
+      const result = await this.dbService.prisma.$transaction([
+        this.dbService.prisma.dpPod.create({
           data: {
             account_id: account.id,
             to: this.convertVisibilityTo(visibility, account),
@@ -130,17 +133,17 @@ export class PodResolver {
             visibility: visibility
           }
         }),
-        prisma.account.update({
+        this.dbService.prisma.account.update({
           where: { id: account.id },
           data: { pod_count: count.pod_count + 1, last_pod_at: new Date() }
         }),
-        prisma.pod.update({
+        this.dbService.prisma.pod.update({
           where: { id: rp_id },
           data: { dp_count: pod.dp_count + 1 }
         })
       ]);
-      const session_me = await redis.get(`account/${account.id}`);
-      await redis.set(`session/${session_me}`, JSON.stringify(result[1]));
+      const session_me = await this.dbService.redis.get(`account/${account.id}`);
+      await this.dbService.redis.set(`session/${session_me}`, JSON.stringify(result[1]));
       res.value = true;
     } catch (e) {
       this.logger.error(e);

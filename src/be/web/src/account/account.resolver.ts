@@ -1,23 +1,25 @@
 import { Resolver, Query, Args } from "@nestjs/graphql";
-import { prisma } from "../lib/prisma";
-import { SessionValidater } from "../auth/gql.strategy";
+import { SessionValidater, accountValidator } from "../auth/gql.strategy";
 import { Account } from "./account.model";
-import { Account as PrismaAccount } from "@prisma/client";
 import { Logger } from "@nestjs/common";
 import { ResultObject } from "../result/result.model";
+import { DBService } from "../db/db.service";
 
 @Resolver()
 export class AccountResolver {
   private readonly logger = new Logger("AccountResolver");
 
+  constructor(private readonly dbService: DBService) {}
+
   @Query(() => ResultObject)
   async isMe(
-    @SessionValidater() account: PrismaAccount,
+    @SessionValidater() ctx,
     @Args("identifier_name", { type: () => String }) identifier_name: string
   ) {
     const me = new ResultObject();
+    const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      const a = await prisma.account.findUnique({
+      const a = await this.dbService.prisma.account.findUnique({
         where: {
           identifier_name: identifier_name
         }
@@ -37,11 +39,12 @@ export class AccountResolver {
 
   @Query(() => Account, { nullable: true })
   async getAccount(
-    @SessionValidater() account: PrismaAccount,
+    @SessionValidater() ctx,
     @Args("identifier_name", { type: () => String }) identifier_name: string
   ) {
+    await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      const a = await prisma.account.findUnique({
+      const a = await this.dbService.prisma.account.findUnique({
         where: {
           identifier_name: identifier_name
         }

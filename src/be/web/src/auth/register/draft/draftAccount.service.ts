@@ -1,11 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
-import { prisma } from "../../../lib/prisma";
 import { randomUUID } from "crypto";
-import { Config } from "../../../config";
 import { subject, body } from "./registrationMailTemplate";
 import { hash } from "../../../lib/hash";
 import { sendEmail } from "../../../lib/sendEmail";
+import { DBService } from "../../../db/db.service";
 
 type DraftAccount = {
   address: string;
@@ -28,12 +27,14 @@ export const isValidPost = (body: any): body is DraftAccount =>
 export class DraftAccountService {
   private readonly logger = new Logger("DraftAccountService");
 
+  constructor(private readonly dbService: DBService) {}
+
   async register(args: DraftAccount) {
     try {
-      const em = await prisma.account.findUnique({
+      const em = await this.dbService.prisma.account.findUnique({
         where: { email: args.email }
       });
-      const id = await prisma.account.findUnique({
+      const id = await this.dbService.prisma.account.findUnique({
         where: { identifier_name: args.identifier_name }
       });
       if (em || id) {
@@ -50,7 +51,9 @@ export class DraftAccountService {
     const token = randomUUID();
     args.password = hash(args.password);
     try {
-      const ret = await prisma.draftAccount.create({ data: { ...args, token: token } });
+      const ret = await this.dbService.prisma.draftAccount.create({
+        data: { ...args, token: token }
+      });
       this.logger.log(`draft account created`, ret);
     } catch (e) {
       if (e?.code === "P2002") {
@@ -64,14 +67,14 @@ export class DraftAccountService {
       }
     }
 
-    if (Config.isLocalEnv) {
+    if (process.env.BONDUC_ENV === "local") {
       this.logger.log(`token is ${token}`);
     } else {
       const { error } = await sendEmail(args.email, subject, body(token));
       if (error) {
         this.logger.error(`sending email failed due to ${error}`);
         try {
-          await prisma.draftAccount.delete({ where: { ...args } });
+          await this.dbService.prisma.draftAccount.delete({ where: { ...args } });
         } catch (e) {
           this.logger.error(`failed delete DraftAccount due to ${e}`);
         } finally {

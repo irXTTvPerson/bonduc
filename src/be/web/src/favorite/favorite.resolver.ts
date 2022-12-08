@@ -1,33 +1,35 @@
 import { Resolver, Args, Mutation } from "@nestjs/graphql";
-import { prisma } from "../lib/prisma";
-import { SessionValidater } from "../auth/gql.strategy";
-import { Account as PrismaAccount } from "@prisma/client";
+import { SessionValidater, accountValidator } from "../auth/gql.strategy";
 import { Logger } from "@nestjs/common";
 import { ResultObject } from "../result/result.model";
+import { DBService } from "../db/db.service";
 
 @Resolver()
 export class FavoriteResolver {
   private readonly logger = new Logger("FavoriteResolver");
 
+  constructor(private readonly dbService: DBService) {}
+
   @Mutation(() => ResultObject)
   async postFavorite(
-    @SessionValidater() account: PrismaAccount,
+    @SessionValidater() ctx,
     @Args("rp_id", { type: () => String }) pod_id: string
   ) {
     const res = new ResultObject();
+    const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      const pod = await prisma.pod.findUnique({
+      const pod = await this.dbService.prisma.pod.findUnique({
         select: { favorite_count: true },
         where: { id: pod_id }
       });
-      await prisma.$transaction([
-        prisma.favorite.create({
+      await this.dbService.prisma.$transaction([
+        this.dbService.prisma.favorite.create({
           data: {
             rp_id: pod_id,
             account_id: account.id
           }
         }),
-        prisma.pod.update({
+        this.dbService.prisma.pod.update({
           where: { id: pod_id },
           data: { favorite_count: pod.favorite_count + 1 }
         })
@@ -43,17 +45,18 @@ export class FavoriteResolver {
 
   @Mutation(() => ResultObject)
   async undoFavorite(
-    @SessionValidater() account: PrismaAccount,
+    @SessionValidater() ctx,
     @Args("rp_id", { type: () => String }) pod_id: string
   ) {
     const res = new ResultObject();
+    const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      const pod = await prisma.pod.findUnique({
+      const pod = await this.dbService.prisma.pod.findUnique({
         select: { favorite_count: true },
         where: { id: pod_id }
       });
-      await prisma.$transaction([
-        prisma.favorite.delete({
+      await this.dbService.prisma.$transaction([
+        this.dbService.prisma.favorite.delete({
           where: {
             rp_id_account_id: {
               rp_id: pod_id,
@@ -61,7 +64,7 @@ export class FavoriteResolver {
             }
           }
         }),
-        prisma.pod.update({
+        this.dbService.prisma.pod.update({
           where: { id: pod_id },
           data: { favorite_count: pod.favorite_count - 1 }
         })

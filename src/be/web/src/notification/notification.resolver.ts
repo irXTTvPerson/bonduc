@@ -1,18 +1,21 @@
 import { Resolver, Mutation, Query, Args } from "@nestjs/graphql";
 import { Notification, NotificationType } from "./notification.model";
-import { prisma } from "../lib/prisma";
 import { Config } from "../config";
-import { SessionValidater } from "../auth/gql.strategy";
-import { Account, Prisma, PrismaPromise } from "@prisma/client";
+import { SessionValidater, accountValidator } from "../auth/gql.strategy";
+import { Prisma, PrismaPromise } from "@prisma/client";
 import { Logger } from "@nestjs/common";
 import { ResultObject } from "../result/result.model";
+import { DBService } from "../db/db.service";
 
 @Resolver()
 export class NotificationResolver {
   private readonly logger = new Logger("NotificationResolver");
 
+  constructor(private readonly dbService: DBService) {}
+
   @Query(() => [Notification], { nullable: "itemsAndList" })
-  async getNotification(@SessionValidater() account: Account) {
+  async getNotification(@SessionValidater() ctx) {
+    const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
       const condition = (ct: number) => {
         return {
@@ -27,10 +30,10 @@ export class NotificationResolver {
       // 何件ずつデータを取ってくるべきか計算する
       const limit = Config.limit.notification.find_at_once;
       const count = [
-        await prisma.followRequest.count(coundCond),
-        await prisma.acceptFollowRequest.count(coundCond),
-        await prisma.rejectFollowRequest.count(coundCond),
-        await prisma.notifyFollowed.count(coundCond)
+        await this.dbService.prisma.followRequest.count(coundCond),
+        await this.dbService.prisma.acceptFollowRequest.count(coundCond),
+        await this.dbService.prisma.rejectFollowRequest.count(coundCond),
+        await this.dbService.prisma.notifyFollowed.count(coundCond)
       ];
       const div = limit / count.length;
       let summation = count.reduce((s, n) => s + n);
@@ -49,10 +52,16 @@ export class NotificationResolver {
 
       const ret: Notification[] = [];
       const notifications = [
-        ["FollowRequest", prisma.followRequest.findMany(condition(count[0]))],
-        ["AcceptFollowRequest", prisma.acceptFollowRequest.findMany(condition(count[1]))],
-        ["RejectFollowRequest", prisma.rejectFollowRequest.findMany(condition(count[2]))],
-        ["Followed", prisma.notifyFollowed.findMany(condition(count[3]))]
+        ["FollowRequest", this.dbService.prisma.followRequest.findMany(condition(count[0]))],
+        [
+          "AcceptFollowRequest",
+          this.dbService.prisma.acceptFollowRequest.findMany(condition(count[1]))
+        ],
+        [
+          "RejectFollowRequest",
+          this.dbService.prisma.rejectFollowRequest.findMany(condition(count[2]))
+        ],
+        ["Followed", this.dbService.prisma.notifyFollowed.findMany(condition(count[3]))]
       ];
 
       for (const notification of notifications) {
@@ -82,13 +91,14 @@ export class NotificationResolver {
 
   @Mutation(() => ResultObject)
   async openNotification(
-    @SessionValidater() account: Account,
+    @SessionValidater() ctx,
     @Args("identifier_name", { type: () => String }) identifier_name: string,
     @Args("type", { type: () => String }) type: NotificationType
   ) {
     const res = new ResultObject();
+    const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      const from_account = await prisma.account.findUnique({
+      const from_account = await this.dbService.prisma.account.findUnique({
         select: { id: true },
         where: { identifier_name: identifier_name }
       });
@@ -106,16 +116,16 @@ export class NotificationResolver {
 
       switch (type) {
         case "FollowRequest":
-          await prisma.followRequest.update(updateCondition);
+          await this.dbService.prisma.followRequest.update(updateCondition);
           break;
         case "AcceptFollowRequest":
-          await prisma.acceptFollowRequest.update(updateCondition);
+          await this.dbService.prisma.acceptFollowRequest.update(updateCondition);
           break;
         case "RejectFollowRequest":
-          await prisma.rejectFollowRequest.update(updateCondition);
+          await this.dbService.prisma.rejectFollowRequest.update(updateCondition);
           break;
         case "Followed":
-          await prisma.notifyFollowed.update(updateCondition);
+          await this.dbService.prisma.notifyFollowed.update(updateCondition);
           break;
         default:
           break;

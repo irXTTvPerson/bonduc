@@ -1,7 +1,7 @@
-import { prisma, pool } from "../lib/prisma";
 import { Config } from "../config";
 import { Account, Pod, DpPod } from "@prisma/client";
 import { HomeTimeline, Type } from "./htl.model";
+import { DBService } from "../db/db.service";
 
 type TimelineCommonBase = { id: string; account_id: string; created_at: Date; type: string };
 
@@ -27,10 +27,14 @@ order by created_at desc
 limit ${limit}`;
 
 export class Mixer {
+  constructor(private readonly dbSerVice: DBService) {}
+
   async build(account: Account): Promise<HomeTimeline[]> {
     const limit = Config.limit.pods.find_at_once;
     const starttime = performance.now();
     const promise = [];
+    const prisma = this.dbSerVice.prisma;
+    const pool = this.dbSerVice.pool;
 
     const gen_place_holder = (num) => {
       let place_holder = "";
@@ -153,7 +157,7 @@ export class Mixer {
     }) as HomeTimeline[];
 
     const endtime = performance.now();
-    if (Config.isLocalEnv) {
+    if (process.env.BONDUC_ENV === "local") {
       console.log("getHTL elapsed: ", endtime - starttime);
     }
     return result;
