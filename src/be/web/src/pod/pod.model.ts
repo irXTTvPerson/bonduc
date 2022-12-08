@@ -20,7 +20,7 @@ export class Pod {
   favorite_count: number = 0;
 
   @Field(() => Int)
-  dp_count: number = 0;
+  rp_count: number = 0;
 
   @Field()
   favorited: boolean = false;
@@ -68,7 +68,7 @@ export class QpPod {
   favorite_count: number = 0;
 
   @Field(() => Int)
-  dp_count: number = 0;
+  rp_count: number = 0;
 
   @Field()
   favorited: boolean = false;

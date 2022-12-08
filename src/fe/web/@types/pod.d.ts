@@ -19,7 +19,7 @@ export type Pod = {
   from: Account
   body: string
   favorite_count: number
-  dp_count: number
+  rp_count: number
   favorited: boolean
   visibility: PodVisibility
   mypod: boolean
@@ -39,7 +39,7 @@ export type QpPod = {
   from: Account
   body: string
   favorite_count: number
-  dp_count: number
+  rp_count: number
   favorited: boolean
   visibility: PodVisibility
   mypod: boolean

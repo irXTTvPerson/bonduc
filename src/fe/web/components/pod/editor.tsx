@@ -60,9 +60,7 @@ const RenderForm = () => {
         <select {...register("v", { required: true })} defaultValue={"global"}>
           <option value={"anyone"}>誰でも</option>
           <option value={"login"}>ログインユーザー</option>
-          <option value={"global"}>
-            連合
-          </option>
+          <option value={"global"}>連合</option>
           <option value={"local"}>ローカル</option>
           <option value={"following"}>フォローしてる人</option>
           <option value={"follower"}>フォロワー</option>

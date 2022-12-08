@@ -1,5 +1,4 @@
 export const Config = {
-
   crypto: {
     hashAlgo: "sha3-512",
     encoding: "hex"

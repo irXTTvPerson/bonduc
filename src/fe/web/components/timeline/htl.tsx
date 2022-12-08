@@ -18,7 +18,7 @@ const queryHTL = `
       body
       favorited
       favorite_count
-      dp_count
+      rp_count
       visibility
       mypod
       from {
@@ -29,6 +29,7 @@ const queryHTL = `
       }
     }
     dpPod {
+      id
       created_at
       from {
         identifier_name
@@ -42,7 +43,7 @@ const queryHTL = `
         body
         favorited
         favorite_count
-        dp_count
+        rp_count
         visibility
         mypod
         from {
@@ -86,10 +87,106 @@ const toDateString = (date: string) => {
   return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`
 }
 
+const toggleRpSelector = (id: string) => {
+  const e = document.getElementById(id)
+  console.log(id, e)
+  if (e?.style.display == "block") {
+    e.style.display = ""
+  } else if (e?.style.display == "" || e?.style.display == "none") {
+    e.style.display = "block"
+  }
+}
+
 class Render {
   setResult: Dispatch<SetStateAction<JSX.Element[]>>
   result: JSX.Element[] = []
   htl: Timeline[] = []
+
+  renderDP(dp: DpPod, index: number) {
+    return (
+      <>
+        <span className={styles.dp_disp}>
+          <Link href={dp.from.account_unique_uri} target="_blank">
+            {dp.from.screen_name} さんがDPしました ⇄
+          </Link>
+        </span>
+        <div className={styles.rp_border}>
+          {dp.body ? (
+            this.renderPod(dp.body, index)
+          ) : (
+            <span className={styles.dp_disp}>*** the pod was deleted ***</span>
+          )}
+        </div>
+      </>
+    )
+  }
+
+  renderPod(pod: Pod, index: number) {
+    return (
+      <>
+        <span className={styles.article_container}>
+          <span className={styles.article_container_flex_box}>
+            <span className={styles.pod_container}>
+              <Link href={pod.from.icon_uri} target="_blank">
+                <Image src={pod.from.icon_uri} width={56} height={56} alt="icon" />
+              </Link>
+              <span className={styles.pod_right_container}>
+                <span className={styles.pod_right_container_flex_box}>
+                  <span className={styles.account_info_name}>
+                    <Link href={pod.from.account_unique_uri} target="_blank">
+                      {pod.from.screen_name}@{pod.from.identifier_name}
+                    </Link>
+                  </span>
+                  <span className={styles.account_info_timestamp}>
+                    {toDateString(pod.created_at)}
+                  </span>
+                </span>
+                <span>{pod.body}</span>
+              </span>
+            </span>
+          </span>
+          <span className={styles.article_container_footer}>
+            <span className={styles.article_container_flex_box}>
+              <span className={`${styles.article_container_footer_button}`}>◀</span>
+              <span className={`${styles.article_container_footer_button} ${styles.rp_container}`}>
+                <span id={`pod_${index}`} className={styles.rp_selecter}>
+                  <div
+                    className={`${styles.cursor} ${styles.rp_hover}`}
+                    onClick={() => {
+                      this.postDP(pod)
+                      toggleRpSelector(`pod_${index}`)
+                    }}
+                  >
+                    DP (duplicate)
+                  </div>
+                  <div>QP (quote)</div>
+                </span>
+                <span
+                  className={`${styles.cursor}`}
+                  onClick={() => toggleRpSelector(`pod_${index}`)}
+                >
+                  📣
+                </span>
+                <span className={styles.counter}>{pod.rp_count > 0 ? pod.rp_count : ""}</span>
+              </span>
+              <span className={styles.article_container_footer_button}>
+                <span className={styles.cursor}>
+                  {pod.favorited ? (
+                    <span onClick={() => this.unFav(pod)}>✨</span>
+                  ) : (
+                    <span onClick={() => this.Fav(pod)}>☆</span>
+                  )}
+                </span>
+                <span className={styles.counter}>
+                  {pod.favorite_count > 0 ? pod.favorite_count : ""}
+                </span>
+              </span>
+            </span>
+          </span>
+        </span>
+      </>
+    )
+  }
 
   Fav(pod: Pod) {
     ;(async () => {
@@ -133,82 +230,12 @@ class Render {
     })()
   }
 
-  renderDP(dp: DpPod) {
-    return (
-      <>
-        <span className={styles.dp_disp}>
-          <Link href={dp.from.account_unique_uri} target="_blank">
-            {dp.from.screen_name} さんがDPしました ⇄
-          </Link>
-        </span>
-        {dp.body ? this.renderPod(dp.body) : <><br />*** the pod was deleted ***</>}
-      </>
-    )
-  }
-
-  renderPod(pod: Pod) {
-    return (
-      <>
-        <span className={styles.podContainer /* header */}>
-          <div className={styles.expander}>
-            <span className={styles.icon /* icon */}>
-              <Link href={pod.from.icon_uri} target="_blank">
-                <Image src={pod.from.icon_uri} width={56} height={56} alt="icon" />
-              </Link>
-            </span>
-            <span className={styles.name /* name */}>
-              <Link href={pod.from.account_unique_uri} target="_blank">
-                {pod.from.screen_name}
-                {pod.mypod ? <span className={styles.mypod}>@</span> : <>@</>}
-                {pod.from.identifier_name}
-              </Link>
-            </span>
-            <span className={styles.timestamp /* timestamp */}>
-              <Link href="">{toDateString(pod.created_at)}</Link>
-            </span>
-          </div>
-        </span>
-
-        <span className={styles.podContainer /* main */}>
-          <span className={styles.icon /* spacer */} />
-          <span className={styles.message /* body */}>{pod.body}</span>
-        </span>
-
-        <span className={styles.podContainer /* foot */}>
-          <span className={styles.icon /* spacer */} />
-          <span className={styles.message /* buttons */}>
-            <span className={`${styles.cursor} ${styles.icon_margin}`}>◀</span>
-            <span
-              className={`${styles.cursor} ${styles.icon_margin}`}
-              onClick={() => this.postDP(pod)}
-            >
-              📣
-            </span>
-            {pod.favorited ? (
-              <span
-                className={`${styles.cursor} ${styles.icon_margin}`}
-                onClick={() => this.unFav(pod)}
-              >
-                ✨
-              </span>
-            ) : (
-              <span
-                className={`${styles.cursor} ${styles.icon_margin}`}
-                onClick={() => this.Fav(pod)}
-              >
-                ☆
-              </span>
-            )}
-          </span>
-        </span>
-      </>
-    )
-  }
-
   timelineTemplate(t: Timeline, index: number) {
     return (
       <article className={styles.article} key={index}>
-        {t.type === "pod" ? this.renderPod(t.pod as Pod) : this.renderDP(t.dpPod as DpPod)}
+        {t.type === "pod"
+          ? this.renderPod(t.pod as Pod, index)
+          : this.renderDP(t.dpPod as DpPod, index)}
       </article>
     )
   }

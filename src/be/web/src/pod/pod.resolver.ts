@@ -117,7 +117,7 @@ export class PodResolver {
     try {
       const pod = await this.dbService.prisma.pod.findUnique({
         where: { id: rp_id },
-        select: { dp_count: true }
+        select: { rp_count: true }
       });
       const count = await this.dbService.prisma.account.findUnique({
         where: { id: account.id },
@@ -139,7 +139,56 @@ export class PodResolver {
         }),
         this.dbService.prisma.pod.update({
           where: { id: rp_id },
-          data: { dp_count: pod.dp_count + 1 }
+          data: { rp_count: pod.rp_count + 1 }
+        })
+      ]);
+      const session_me = await this.dbService.redis.get(`account/${account.id}`);
+      await this.dbService.redis.set(`session/${session_me}`, JSON.stringify(result[1]));
+      res.value = true;
+    } catch (e) {
+      this.logger.error(e);
+      res.value = false;
+    } finally {
+      return res;
+    }
+  }
+
+  @Mutation(() => ResultObject)
+  async createQpPod(
+    @SessionValidater() ctx,
+    @Args("pod_id", { type: () => String }) pod_id: string,
+    @Args("body", { type: () => String }) body: string,
+    @Args("visibility", { type: () => PodVisibility }) visibility: PodVisibility
+  ) {
+    const res = new ResultObject();
+    const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
+    try {
+      const pod = await this.dbService.prisma.pod.findUnique({
+        where: { id: pod_id },
+        select: { rp_count: true }
+      });
+      const count = await this.dbService.prisma.account.findUnique({
+        where: { id: account.id },
+        select: { pod_count: true }
+      });
+      const result = await this.dbService.prisma.$transaction([
+        this.dbService.prisma.qpPod.create({
+          data: {
+            account_id: account.id,
+            to: this.convertVisibilityTo(visibility, account),
+            cc: this.convertVisibilityCc(visibility, account),
+            pod_id: pod_id,
+            visibility: visibility,
+            body: body
+          }
+        }),
+        this.dbService.prisma.account.update({
+          where: { id: account.id },
+          data: { pod_count: count.pod_count + 1, last_pod_at: new Date() }
+        }),
+        this.dbService.prisma.pod.update({
+          where: { id: pod_id },
+          data: { rp_count: pod.rp_count + 1 }
         })
       ]);
       const session_me = await this.dbService.redis.get(`account/${account.id}`);
