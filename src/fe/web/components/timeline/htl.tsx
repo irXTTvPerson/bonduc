@@ -2,7 +2,7 @@ import type { NextPage } from "next"
 import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import { GqlClient } from "../../components/common/gql"
 import { QpPod, DpPod, Pod, PodVisibility } from "../../@types/pod"
-import { Timeline } from "../../@types/htl"
+import { Timeline, Type } from "../../@types/htl"
 import styles from "../../styles/HTL.module.css"
 import { ResultObject } from "../../@types/result"
 import Link from "next/link"
@@ -95,16 +95,16 @@ const queryHTL = `
 `
 
 const queryFav = `
-mutation ($id: String!) {
-  postFavorite(rp_id: $id) {
+mutation ($id: String!, $type: String!) {
+  postFavorite(rp_id: $id, type: $type) {
     value
   }
 }
 `
 
 const queryUnFav = `
-mutation ($id: String!) {
-  undoFavorite(rp_id: $id) {
+mutation ($id: String!, $type: String!) {
+  undoFavorite(rp_id: $id, type: $type) {
     value
   }
 }
@@ -155,10 +155,10 @@ class Render {
   private renderQp(qp: QpPod) {
     return (
       <>
-        {this.renderPod(qp as Pod)}
+        {this.renderPod(qp as Pod, "qp")}
         <div className={styles.rp_border}>
           {qp.quote ? (
-            this.renderPod(qp.quote)
+            this.renderPod(qp.quote, "pod")
           ) : (
             <span className={styles.dp_disp}>*** the pod was deleted ***</span>
           )}
@@ -177,7 +177,7 @@ class Render {
         </span>
         <div className={styles.rp_border}>
           {dp.body ? (
-            this.renderPod(dp.body)
+            this.renderPod(dp.body, "pod")
           ) : (
             <span className={styles.dp_disp}>*** the pod was deleted ***</span>
           )}
@@ -186,7 +186,7 @@ class Render {
     )
   }
 
-  private renderPod(pod: Pod) {
+  private renderPod(pod: Pod, type: Type) {
     const clickable_area_id = `rp_selector_clickable_area_${v4()}`
     const selector_id = `rp_selector_${v4()}`
     return (
@@ -267,9 +267,9 @@ class Render {
               <span className={styles.article_container_footer_button}>
                 <span className={styles.cursor}>
                   {pod.favorited ? (
-                    <span onClick={() => this.unFav(pod)}>✨</span>
+                    <span onClick={() => this.unFav(pod, type)}>✨</span>
                   ) : (
-                    <span onClick={() => this.Fav(pod)}>☆</span>
+                    <span onClick={() => this.Fav(pod, type)}>☆</span>
                   )}
                 </span>
                 <span className={styles.counter}>
@@ -287,7 +287,7 @@ class Render {
     let entry: JSX.Element;
     switch (t.type) {
       case "pod":
-        entry = this.renderPod(t.pod as Pod);
+        entry = this.renderPod(t.pod as Pod, "pod");
         break;
       case "dp":
         entry = this.renderDp(t.dpPod as DpPod);
@@ -316,11 +316,11 @@ class Render {
     showElement(popup_container_id)
   }
 
-  private Fav(pod: Pod) {
+  private Fav(pod: Pod, type: Type) {
     ;(async () => {
       const gql = new GqlClient()
       console.log(pod)
-      await gql.fetch({ id: pod.id }, queryFav)
+      await gql.fetch({ id: pod.id, type: type }, queryFav)
       const res = gql.res.postFavorite as ResultObject
       if (res.value) {
         this.init()
@@ -328,10 +328,10 @@ class Render {
     })()
   }
 
-  private unFav(pod: Pod) {
+  private unFav(pod: Pod, type: Type) {
     ;(async () => {
       const gql = new GqlClient()
-      await gql.fetch({ id: pod.id }, queryUnFav)
+      await gql.fetch({ id: pod.id, type: type }, queryUnFav)
       const res = gql.res.undoFavorite as ResultObject
       if (res.value) {
         this.init()

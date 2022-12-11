@@ -3,6 +3,7 @@ import { SessionValidater, accountValidator } from "../auth/gql.strategy";
 import { Logger } from "@nestjs/common";
 import { ResultObject } from "../result/result.model";
 import { DBService } from "../db/db.service";
+import { Type } from "../timeline/htl.model";
 
 @Resolver()
 export class FavoriteResolver {
@@ -13,27 +14,47 @@ export class FavoriteResolver {
   @Mutation(() => ResultObject)
   async postFavorite(
     @SessionValidater() ctx,
-    @Args("rp_id", { type: () => String }) pod_id: string
+    @Args("rp_id", { type: () => String }) rp_id: string,
+    @Args("type", { type: () => String }) type: Type
   ) {
     const res = new ResultObject();
     const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      const pod = await this.dbService.prisma.pod.findUnique({
-        select: { favorite_count: true },
-        where: { id: pod_id }
-      });
-      await this.dbService.prisma.$transaction([
-        this.dbService.prisma.favorite.create({
-          data: {
-            rp_id: pod_id,
-            account_id: account.id
-          }
-        }),
-        this.dbService.prisma.pod.update({
-          where: { id: pod_id },
-          data: { favorite_count: pod.favorite_count + 1 }
-        })
-      ]);
+      if (type === "pod") {
+        const pod = await this.dbService.prisma.pod.findUnique({
+          select: { favorite_count: true },
+          where: { id: rp_id }
+        });
+        await this.dbService.prisma.$transaction([
+          this.dbService.prisma.favorite.create({
+            data: {
+              rp_id: rp_id,
+              account_id: account.id
+            }
+          }),
+          this.dbService.prisma.pod.update({
+            where: { id: rp_id },
+            data: { favorite_count: pod.favorite_count + 1 }
+          })
+        ]);
+      } else if (type === "qp") {
+        const pod = await this.dbService.prisma.qpPod.findUnique({
+          select: { favorite_count: true },
+          where: { id: rp_id }
+        });
+        await this.dbService.prisma.$transaction([
+          this.dbService.prisma.favorite.create({
+            data: {
+              rp_id: rp_id,
+              account_id: account.id
+            }
+          }),
+          this.dbService.prisma.qpPod.update({
+            where: { id: rp_id },
+            data: { favorite_count: pod.favorite_count + 1 }
+          })
+        ]);
+      }
       res.value = true;
     } catch (e) {
       this.logger.error(e);
@@ -46,29 +67,51 @@ export class FavoriteResolver {
   @Mutation(() => ResultObject)
   async undoFavorite(
     @SessionValidater() ctx,
-    @Args("rp_id", { type: () => String }) pod_id: string
+    @Args("rp_id", { type: () => String }) rp_id: string,
+    @Args("type", { type: () => String }) type: Type
   ) {
     const res = new ResultObject();
     const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      const pod = await this.dbService.prisma.pod.findUnique({
-        select: { favorite_count: true },
-        where: { id: pod_id }
-      });
-      await this.dbService.prisma.$transaction([
-        this.dbService.prisma.favorite.delete({
-          where: {
-            rp_id_account_id: {
-              rp_id: pod_id,
-              account_id: account.id
+      if (type === "pod") {
+        const pod = await this.dbService.prisma.pod.findUnique({
+          select: { favorite_count: true },
+          where: { id: rp_id }
+        });
+        await this.dbService.prisma.$transaction([
+          this.dbService.prisma.favorite.delete({
+            where: {
+              rp_id_account_id: {
+                rp_id: rp_id,
+                account_id: account.id
+              }
             }
-          }
-        }),
-        this.dbService.prisma.pod.update({
-          where: { id: pod_id },
-          data: { favorite_count: pod.favorite_count - 1 }
-        })
-      ]);
+          }),
+          this.dbService.prisma.pod.update({
+            where: { id: rp_id },
+            data: { favorite_count: pod.favorite_count - 1 }
+          })
+        ]);
+      } else if (type === "qp") {
+        const pod = await this.dbService.prisma.qpPod.findUnique({
+          select: { favorite_count: true },
+          where: { id: rp_id }
+        });
+        await this.dbService.prisma.$transaction([
+          this.dbService.prisma.favorite.delete({
+            where: {
+              rp_id_account_id: {
+                rp_id: rp_id,
+                account_id: account.id
+              }
+            }
+          }),
+          this.dbService.prisma.qpPod.update({
+            where: { id: rp_id },
+            data: { favorite_count: pod.favorite_count - 1 }
+          })
+        ]);
+      }
       res.value = true;
     } catch (e) {
       this.logger.error(e);
