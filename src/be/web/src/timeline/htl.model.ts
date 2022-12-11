@@ -1,7 +1,7 @@
 import { Field, ObjectType } from "@nestjs/graphql";
-import { Pod, DpPod } from "../pod/pod.model";
+import { Pod, DpPod, QpPod } from "../pod/pod.model";
 
-export type Type = "pod" | "dp" | "err";
+export type Type = "pod" | "dp" | "qp" | "err";
 
 @ObjectType()
 export class HomeTimeline {
@@ -13,4 +13,7 @@ export class HomeTimeline {
 
   @Field(() => DpPod, { nullable: true })
   dpPod?: DpPod = null;
+
+  @Field(() => QpPod, { nullable: true })
+  qpPod?: QpPod = null;
 }

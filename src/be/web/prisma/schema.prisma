@@ -104,7 +104,7 @@ model QpPod {
   account_id     String
   body           String
   favorite_count Int           @default(0)
-  dp_count       Int           @default(0)
+  rp_count       Int           @default(0)
   visibility     PodVisibility @default(global)
   pod_id         String
 

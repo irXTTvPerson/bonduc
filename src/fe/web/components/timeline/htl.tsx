@@ -1,13 +1,14 @@
 import type { NextPage } from "next"
 import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import { GqlClient } from "../../components/common/gql"
-import { DpPod, Pod, PodVisibility } from "../../@types/pod"
+import { QpPod, DpPod, Pod, PodVisibility } from "../../@types/pod"
 import { Timeline } from "../../@types/htl"
 import styles from "../../styles/HTL.module.css"
 import { ResultObject } from "../../@types/result"
 import Link from "next/link"
 import Image from "next/image"
 import PodEditor from "../pod/editor"
+import { v4 } from "uuid"
 
 const popup_container_id = "popup_container"
 
@@ -41,6 +42,38 @@ const queryHTL = `
         account_unique_uri
       }
       body {
+        id
+        created_at
+        body
+        favorited
+        favorite_count
+        rp_count
+        visibility
+        mypod
+        from {
+          identifier_name
+          screen_name
+          icon_uri
+          account_unique_uri
+        }
+      }
+    }
+    qpPod {
+      id
+      created_at
+      body
+      favorited
+      favorite_count
+      rp_count
+      visibility
+      mypod
+      from {
+        identifier_name
+        screen_name
+        icon_uri
+        account_unique_uri
+      }
+      quote {
         id
         created_at
         body
@@ -119,7 +152,22 @@ class Render {
   private result: JSX.Element[] = []
   private htl: Timeline[] = []
 
-  private renderDP(dp: DpPod, index: number) {
+  private renderQp(qp: QpPod) {
+    return (
+      <>
+        {this.renderPod(qp as Pod)}
+        <div className={styles.rp_border}>
+          {qp.quote ? (
+            this.renderPod(qp.quote)
+          ) : (
+            <span className={styles.dp_disp}>*** the pod was deleted ***</span>
+          )}
+        </div>
+      </>
+    )
+  }
+
+  private renderDp(dp: DpPod) {
     return (
       <>
         <span className={styles.dp_disp}>
@@ -129,7 +177,7 @@ class Render {
         </span>
         <div className={styles.rp_border}>
           {dp.body ? (
-            this.renderPod(dp.body, index)
+            this.renderPod(dp.body)
           ) : (
             <span className={styles.dp_disp}>*** the pod was deleted ***</span>
           )}
@@ -138,7 +186,9 @@ class Render {
     )
   }
 
-  private renderPod(pod: Pod, index: number) {
+  private renderPod(pod: Pod) {
+    const clickable_area_id = `rp_selector_clickable_area_${v4()}`
+    const selector_id = `rp_selector_${v4()}`
     return (
       <>
         <span className={styles.article_container}>
@@ -174,20 +224,20 @@ class Render {
               <span className={`${styles.article_container_footer_button}`}>◀</span>
               <span className={`${styles.article_container_footer_button} ${styles.rp_container}`}>
                 <span
-                  id={`rp_selector_clickable_area_${index}`}
+                  id={clickable_area_id}
                   className={styles.rp_selector_clickable_area}
                   onClick={() => {
-                    hideElement(`rp_selector_clickable_area_${index}`)
-                    hideElement(`rp_selector_${index}`)
+                    hideElement(clickable_area_id)
+                    hideElement(selector_id)
                   }}
                 />
-                <span id={`rp_selector_${index}`} className={styles.rp_selecter}>
+                <span id={selector_id} className={styles.rp_selecter}>
                   <div
                     className={`${styles.cursor} ${styles.rp_hover}`}
                     onClick={() => {
                       this.postDP(pod)
-                      hideElement(`rp_selector_clickable_area_${index}`)
-                      hideElement(`rp_selector_${index}`)
+                      hideElement(clickable_area_id)
+                      hideElement(selector_id)
                     }}
                   >
                     DP (duplicate)
@@ -196,8 +246,8 @@ class Render {
                     className={`${styles.cursor} ${styles.rp_hover}`}
                     onClick={() => {
                       this.openPodEditorViaQp(pod)
-                      hideElement(`rp_selector_clickable_area_${index}`)
-                      hideElement(`rp_selector_${index}`)
+                      hideElement(clickable_area_id)
+                      hideElement(selector_id)
                     }}
                   >
                     QP (quote)
@@ -206,8 +256,8 @@ class Render {
                 <span
                   className={`${styles.cursor}`}
                   onClick={() => {
-                    showElement(`rp_selector_clickable_area_${index}`)
-                    showElement(`rp_selector_${index}`)
+                    showElement(clickable_area_id)
+                    showElement(selector_id)
                   }}
                 >
                   📣
@@ -234,11 +284,24 @@ class Render {
   }
 
   private timelineTemplate(t: Timeline, index: number) {
+    let entry: JSX.Element;
+    switch (t.type) {
+      case "pod":
+        entry = this.renderPod(t.pod as Pod);
+        break;
+      case "dp":
+        entry = this.renderDp(t.dpPod as DpPod);
+        break;
+      case "qp":
+        entry = this.renderQp(t.qpPod as QpPod);
+        break;
+      default:
+        entry = <>err</>
+        break;
+    }
     return (
       <article className={styles.article} key={index}>
-        {t.type === "pod"
-          ? this.renderPod(t.pod as Pod, index)
-          : this.renderDP(t.dpPod as DpPod, index)}
+        {entry}
       </article>
     )
   }
