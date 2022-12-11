@@ -4,7 +4,6 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import styles from "../styles/Account.module.css"
 import { GqlClient } from "../components/common/gql"
 import { Account } from "../@types/account"
-import { FollowRequest } from "../@types/follow"
 import { ResultObject } from "../@types/result"
 
 type Props = {

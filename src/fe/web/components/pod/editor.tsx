@@ -3,11 +3,22 @@ import { useState } from "react"
 import { useForm, SubmitHandler } from "react-hook-form"
 import styles from "../../styles/PodEditor.module.css"
 import { GqlClient } from "../../components/common/gql"
-import { PodVisibility } from "../../@types/pod"
+import { PodVisibility, Pod } from "../../@types/pod"
+import Image from "next/image"
+import { toIconFromVisibility, toDateString } from "../timeline/htl"
+import pod_style from "../../styles/HTL.module.css"
+import { ResultObject } from "../../@types/result"
 
 type Inputs = {
   body: string
   v: PodVisibility
+}
+
+export type Props = {
+  type: "pod" | "dp" | "qp" | "none"
+  pod?: Pod
+  onPostSuccess?: () => void
+  onPostFail?: () => void
 }
 
 const query = `
@@ -21,7 +32,43 @@ mutation ($body: String!, $v: PodVisibility!) {
 }
 `
 
-const RenderForm = () => {
+const queryQp = `
+mutation ($id: String!, $body: String!, $v: PodVisibility!) {
+  createQpPod(
+    pod_id: $id
+    body: $body
+    visibility: $v
+  ) {
+    value
+  }
+}
+`
+
+const renderPod = (pod: Pod) => {
+  return (
+    <span className={pod_style.pod_container}>
+      <Image src={pod.from.icon_uri} width={56} height={56} alt="icon" />
+      <span className={pod_style.pod_right_container}>
+        <span className={pod_style.pod_right_container_flex_box}>
+          <span
+            className={`${pod_style.account_info_name} ${
+              pod.mypod ? pod_style.account_info_thisis_me : ""
+            }`}
+          >
+            {pod.from.screen_name}@{pod.from.identifier_name}
+          </span>
+          <span className={pod_style.account_info_timestamp}>
+            <span className={pod_style.visibility}>{toIconFromVisibility(pod.visibility)}</span>
+            {toDateString(pod.created_at)}
+          </span>
+        </span>
+        <span>{pod.body.length > 70 ? `${pod.body.slice(0, 70)} . . .` : pod.body}</span>
+      </span>
+    </span>
+  )
+}
+
+const RenderForm = (type: string, pod?: Pod, onSuccess?: () => void, onFail?: () => void) => {
   const {
     register,
     handleSubmit,
@@ -33,22 +80,44 @@ const RenderForm = () => {
     setResult("podding...")
 
     const gql = new GqlClient()
-    await gql.fetch(
-      {
-        body: data.body,
-        v: data.v
-      },
-      query
-    )
-    if (gql.err) {
-      setResult("post failed")
+    if (type === "qp") {
+      await gql.fetch(
+        {
+          id: pod?.id,
+          body: data.body,
+          v: data.v
+        },
+        queryQp
+      )
     } else {
+      await gql.fetch(
+        {
+          body: data.body,
+          v: data.v
+        },
+        query
+      )
+    }
+    const res =
+      type === "qp" ? (gql.res.createQpPod as ResultObject) : (gql.res.createPod as ResultObject)
+    if (res.value) {
       setResult("post success")
+      if (onSuccess) onSuccess()
+    } else {
+      setResult("post failed")
+      if (onFail) onFail()
     }
   }
 
   return (
     <>
+      {pod && type === "qp" ? (
+        <>
+          このpodをQPします :<span className={styles.disp_pod}>{renderPod(pod)}</span>
+        </>
+      ) : (
+        <></>
+      )}
       <form onSubmit={handleSubmit(onSubmit)}>
         <div>
           <textarea
@@ -79,8 +148,12 @@ const RenderForm = () => {
   )
 }
 
-const PodEditor: NextPage = () => {
-  return <div className={styles.container}>{RenderForm()}</div>
+const PodEditor: NextPage<Props> = (props: Props) => {
+  return (
+    <div className={styles.container}>
+      {RenderForm(props.type, props.pod, props.onPostSuccess, props.onPostFail)}
+    </div>
+  )
 }
 
 export default PodEditor
