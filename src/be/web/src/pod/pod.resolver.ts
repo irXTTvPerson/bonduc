@@ -1,10 +1,11 @@
 import { Resolver, Args, Mutation } from "@nestjs/graphql";
 import { Pod } from "./pod.model";
 import { SessionValidater, accountValidator } from "../auth/gql.strategy";
-import { Account, PodVisibility } from "@prisma/client";
+import { Account, PodVisibility, DpContentType, QpContentType } from "@prisma/client";
 import { Logger } from "@nestjs/common";
 import { ResultObject } from "../result/result.model";
 import { DBService } from "../db/db.service";
+import { Type } from "../timeline/htl.model";
 
 @Resolver(Pod)
 export class PodResolver {
@@ -106,44 +107,103 @@ export class PodResolver {
     }
   }
 
+  private async createDpPodImpl(
+    account: Account,
+    rp_id: string,
+    visibility: PodVisibility,
+    type: Type
+  ) {
+    const pool: any = type === "pod" ? this.dbService.pool[0].pod : this.dbService.pool[0].qpPod;
+    const prisma: any = type === "pod" ? this.dbService.prisma.pod : this.dbService.prisma.qpPod;
+    const [pod, count] = await Promise.all([
+      pool.findUnique({
+        where: { id: rp_id },
+        select: { rp_count: true }
+      }),
+      this.dbService.pool[1].account.findUnique({
+        where: { id: account.id },
+        select: { pod_count: true }
+      })
+    ]);
+    const result = await this.dbService.prisma.$transaction([
+      this.dbService.prisma.dpPod.create({
+        data: {
+          account_id: account.id,
+          to: this.convertVisibilityTo(visibility, account),
+          cc: this.convertVisibilityCc(visibility, account),
+          rp_id: rp_id,
+          rp_type: type as DpContentType,
+          visibility: visibility
+        }
+      }),
+      this.dbService.prisma.account.update({
+        where: { id: account.id },
+        data: { pod_count: count.pod_count + 1, last_pod_at: new Date() }
+      }),
+      prisma.update({
+        where: { id: rp_id },
+        data: { rp_count: pod.rp_count + 1 }
+      })
+    ]);
+    return result[1];
+  }
+
+  private async createQpPodImpl(
+    account: Account,
+    body: string,
+    rp_id: string,
+    visibility: PodVisibility,
+    type: Type
+  ) {
+    const pool: any = type === "pod" ? this.dbService.pool[0].pod : this.dbService.pool[0].qpPod;
+    const prisma: any = type === "pod" ? this.dbService.prisma.pod : this.dbService.prisma.qpPod;
+    const [pod, count] = await Promise.all([
+      pool.findUnique({
+        where: { id: rp_id },
+        select: { rp_count: true }
+      }),
+      this.dbService.pool[1].account.findUnique({
+        where: { id: account.id },
+        select: { pod_count: true }
+      })
+    ]);
+    const result = await this.dbService.prisma.$transaction([
+      this.dbService.prisma.qpPod.create({
+        data: {
+          account_id: account.id,
+          to: this.convertVisibilityTo(visibility, account),
+          cc: this.convertVisibilityCc(visibility, account),
+          rp_id: rp_id,
+          rp_type: type as QpContentType,
+          visibility: visibility,
+          body: body
+        }
+      }),
+      this.dbService.prisma.account.update({
+        where: { id: account.id },
+        data: { pod_count: count.pod_count + 1, last_pod_at: new Date() }
+      }),
+      prisma.update({
+        where: { id: rp_id },
+        data: { rp_count: pod.rp_count + 1 }
+      })
+    ]);
+    return result[1];
+  }
+
   @Mutation(() => ResultObject)
   async createDpPod(
     @SessionValidater() ctx,
     @Args("rp_id", { type: () => String }) rp_id: string,
-    @Args("visibility", { type: () => PodVisibility }) visibility: PodVisibility
+    @Args("visibility", { type: () => PodVisibility }) visibility: PodVisibility,
+    @Args("type", { type: () => String }) type: Type
   ) {
     const res = new ResultObject();
     const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      const pod = await this.dbService.prisma.pod.findUnique({
-        where: { id: rp_id },
-        select: { rp_count: true }
-      });
-      const count = await this.dbService.prisma.account.findUnique({
-        where: { id: account.id },
-        select: { pod_count: true }
-      });
-      const result = await this.dbService.prisma.$transaction([
-        this.dbService.prisma.dpPod.create({
-          data: {
-            account_id: account.id,
-            to: this.convertVisibilityTo(visibility, account),
-            cc: this.convertVisibilityCc(visibility, account),
-            rp_id: rp_id,
-            visibility: visibility
-          }
-        }),
-        this.dbService.prisma.account.update({
-          where: { id: account.id },
-          data: { pod_count: count.pod_count + 1, last_pod_at: new Date() }
-        }),
-        this.dbService.prisma.pod.update({
-          where: { id: rp_id },
-          data: { rp_count: pod.rp_count + 1 }
-        })
-      ]);
+      const updatedAccount = await this.createDpPodImpl(account, rp_id, visibility, type);
       const session_me = await this.dbService.redis.get(`account/${account.id}`);
-      await this.dbService.redis.set(`session/${session_me}`, JSON.stringify(result[1]));
+      await this.dbService.redis.set(`session/${session_me}`, JSON.stringify(updatedAccount));
       res.value = true;
     } catch (e) {
       this.logger.error(e);
@@ -156,43 +216,17 @@ export class PodResolver {
   @Mutation(() => ResultObject)
   async createQpPod(
     @SessionValidater() ctx,
-    @Args("pod_id", { type: () => String }) pod_id: string,
+    @Args("rp_id", { type: () => String }) rp_id: string,
     @Args("body", { type: () => String }) body: string,
-    @Args("visibility", { type: () => PodVisibility }) visibility: PodVisibility
+    @Args("visibility", { type: () => PodVisibility }) visibility: PodVisibility,
+    @Args("type", { type: () => String }) type: Type
   ) {
     const res = new ResultObject();
     const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      const pod = await this.dbService.prisma.pod.findUnique({
-        where: { id: pod_id },
-        select: { rp_count: true }
-      });
-      const count = await this.dbService.prisma.account.findUnique({
-        where: { id: account.id },
-        select: { pod_count: true }
-      });
-      const result = await this.dbService.prisma.$transaction([
-        this.dbService.prisma.qpPod.create({
-          data: {
-            account_id: account.id,
-            to: this.convertVisibilityTo(visibility, account),
-            cc: this.convertVisibilityCc(visibility, account),
-            pod_id: pod_id,
-            visibility: visibility,
-            body: body
-          }
-        }),
-        this.dbService.prisma.account.update({
-          where: { id: account.id },
-          data: { pod_count: count.pod_count + 1, last_pod_at: new Date() }
-        }),
-        this.dbService.prisma.pod.update({
-          where: { id: pod_id },
-          data: { rp_count: pod.rp_count + 1 }
-        })
-      ]);
+      const updatedAccount = await this.createQpPodImpl(account, body, rp_id, visibility, type);
       const session_me = await this.dbService.redis.get(`account/${account.id}`);
-      await this.dbService.redis.set(`session/${session_me}`, JSON.stringify(result[1]));
+      await this.dbService.redis.set(`session/${session_me}`, JSON.stringify(updatedAccount));
       res.value = true;
     } catch (e) {
       this.logger.error(e);

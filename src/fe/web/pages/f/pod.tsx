@@ -14,7 +14,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 }
 
 const PostPod: NextPage<Props> = (props: Props) => {
-  return <>{props.session ? <PodEditor type="none" /> : "need login"}</>
+  return <>{props.session ? <PodEditor isQp={false} /> : "need login"}</>
 }
 
 export default PostPod

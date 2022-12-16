@@ -13,6 +13,8 @@ export type PodVisibility =
   | "password"
   | "myself"
 
+export type Type = "pod" | "qp"
+
 export type Pod = {
   id: string
   created_at: string
@@ -29,8 +31,10 @@ export type DpPod = {
   id: string
   created_at: string
   from: Account
-  body?: Pod
+  pod?: Pod
+  qp?: QpPod
   visibility: PodVisibility
+  type: Type
 }
 
 export type QpPod = {
@@ -43,5 +47,7 @@ export type QpPod = {
   favorited: boolean
   visibility: PodVisibility
   mypod: boolean
-  quote?: Pod
+  pod?: Pod
+  qp?: QpPod
+  type: Type
 }

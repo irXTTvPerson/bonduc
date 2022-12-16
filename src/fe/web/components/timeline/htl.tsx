@@ -1,8 +1,8 @@
 import type { NextPage } from "next"
 import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import { GqlClient } from "../../components/common/gql"
-import { QpPod, DpPod, Pod, PodVisibility } from "../../@types/pod"
-import { Timeline, Type } from "../../@types/htl"
+import { QpPod, DpPod, Pod, PodVisibility, Type } from "../../@types/pod"
+import { Timeline } from "../../@types/htl"
 import styles from "../../styles/HTL.module.css"
 import { ResultObject } from "../../@types/result"
 import Link from "next/link"
@@ -10,53 +10,61 @@ import Image from "next/image"
 import PodEditor from "../pod/editor"
 import { v4 } from "uuid"
 
-const popup_container_id = "popup_container"
+const podContent = `
+{
+  id
+  created_at
+  body
+  favorited
+  favorite_count
+  rp_count
+  visibility
+  mypod
+  from {
+    identifier_name
+    screen_name
+    icon_uri
+    account_unique_uri
+  }
+}
+`
+
+const qpPodContent = `
+{
+  id
+  created_at
+  body
+  favorited
+  favorite_count
+  rp_count
+  visibility
+  mypod
+  from {
+    identifier_name
+    screen_name
+    icon_uri
+    account_unique_uri
+  }
+}
+`
 
 const queryHTL = `
 {
   getHTL {
     type
-    pod {
-      id
-      created_at
-      body
-      favorited
-      favorite_count
-      rp_count
-      visibility
-      mypod
-      from {
-        identifier_name
-        screen_name
-        icon_uri
-        account_unique_uri
-      }
-    }
+    pod ${podContent}
     dpPod {
       id
       created_at
+      type
       from {
         identifier_name
         screen_name
         icon_uri
         account_unique_uri
       }
-      body {
-        id
-        created_at
-        body
-        favorited
-        favorite_count
-        rp_count
-        visibility
-        mypod
-        from {
-          identifier_name
-          screen_name
-          icon_uri
-          account_unique_uri
-        }
-      }
+      pod ${podContent}
+      qp ${qpPodContent}
     }
     qpPod {
       id
@@ -67,28 +75,15 @@ const queryHTL = `
       rp_count
       visibility
       mypod
+      type
       from {
         identifier_name
         screen_name
         icon_uri
         account_unique_uri
       }
-      quote {
-        id
-        created_at
-        body
-        favorited
-        favorite_count
-        rp_count
-        visibility
-        mypod
-        from {
-          identifier_name
-          screen_name
-          icon_uri
-          account_unique_uri
-        }
-      }
+      pod ${podContent}
+      qp ${qpPodContent}
     }
   }
 }
@@ -111,8 +106,8 @@ mutation ($id: String!, $type: String!) {
 `
 
 const queryPostQP = `
-mutation ($id: String!, $v: PodVisibility!) {
-  createDpPod(rp_id: $id, visibility: $v) {
+mutation ($id: String!, $v: PodVisibility!, $type: String!) {
+  createDpPod(rp_id: $id, visibility: $v, type: $type) {
     value
   }
 }
@@ -152,22 +147,198 @@ class Render {
   private result: JSX.Element[] = []
   private htl: Timeline[] = []
 
-  private renderQp(qp: QpPod) {
+  private renderFavButtonImpl(pod: Pod, type: Type) {
+    return (
+      <span className={styles.article_container_footer_button}>
+        <span className={styles.cursor}>
+          {pod.favorited ? (
+            <span onClick={() => this.unFav(pod, type)}>✨</span>
+          ) : (
+            <span onClick={() => this.Fav(pod, type)}>☆</span>
+          )}
+        </span>
+        <span className={styles.counter}>{pod.favorite_count > 0 ? pod.favorite_count : ""}</span>
+      </span>
+    )
+  }
+
+  private renderFavButtonForPod(pod: Pod) {
+    return this.renderFavButtonImpl(pod, "pod")
+  }
+
+  private renderFavButtonForQp(pod: Pod) {
+    return this.renderFavButtonImpl(pod, "qp")
+  }
+
+  private renderReplyButton() {
+    return <span className={`${styles.article_container_footer_button}`}>◀</span>
+  }
+
+  private renderRpSelector(pod: Pod, type: Type, clickable_area_id: string, selector_id: string) {
+    return (
+      <span id={selector_id} className={styles.rp_selecter}>
+        <div
+          className={`${styles.cursor} ${styles.rp_hover}`}
+          onClick={() => {
+            this.postDP(pod, type)
+            hideElement(clickable_area_id)
+            hideElement(selector_id)
+          }}
+        >
+          DP (duplicate)
+        </div>
+        <div
+          className={`${styles.cursor} ${styles.rp_hover}`}
+          onClick={() => {
+            this.openPodEditorViaQp(pod, type)
+            hideElement(clickable_area_id)
+            hideElement(selector_id)
+          }}
+        >
+          QP (quote)
+        </div>
+      </span>
+    )
+  }
+
+  private renderRpButtonImpl(pod: Pod, type: Type) {
+    const clickable_area_id = `rp_selector_clickable_area_${v4()}`
+    const selector_id = `rp_selector_${v4()}`
+    return (
+      <span className={`${styles.article_container_footer_button} ${styles.rp_container}`}>
+        <span
+          id={clickable_area_id}
+          className={styles.rp_selector_clickable_area}
+          onClick={() => {
+            hideElement(clickable_area_id)
+            hideElement(selector_id)
+          }}
+        />
+        {this.renderRpSelector(pod, type, clickable_area_id, selector_id)}
+        <span
+          className={`${styles.cursor}`}
+          onClick={() => {
+            showElement(clickable_area_id)
+            showElement(selector_id)
+          }}
+        >
+          📣
+        </span>
+        <span className={styles.counter}>{pod.rp_count > 0 ? pod.rp_count : ""}</span>
+      </span>
+    )
+  }
+
+  private renderRpButtonForPod(pod: Pod) {
+    return this.renderRpButtonImpl(pod, "pod")
+  }
+
+  private renderRpButtonForQp(pod: Pod) {
+    return this.renderRpButtonImpl(pod, "qp")
+  }
+
+  private renderIcon(pod: Pod) {
+    return (
+      <Link href={pod.from.icon_uri} target="_blank">
+        <Image src={pod.from.icon_uri} width={56} height={56} alt="icon" />
+      </Link>
+    )
+  }
+
+  private renderAccountName(pod: Pod) {
+    return (
+      <span
+        className={`${styles.account_info_name} ${pod.mypod ? styles.account_info_thisis_me : ""}`}
+      >
+        <Link href={pod.from.account_unique_uri} target="_blank">
+          {pod.from.screen_name}@{pod.from.identifier_name}
+        </Link>
+      </span>
+    )
+  }
+
+  private renderTimestamp(pod: Pod) {
+    return (
+      <span className={styles.account_info_timestamp}>
+        <span className={styles.visibility}>{toIconFromVisibility(pod.visibility)}</span>
+        {toDateString(pod.created_at)}
+      </span>
+    )
+  }
+
+  private renderBodyAndAccount(pod: Pod) {
+    return (
+      <span className={styles.pod_right_container}>
+        <span className={styles.pod_right_container_flex_box}>
+          {this.renderAccountName(pod)}
+          {this.renderTimestamp(pod)}
+        </span>
+        <span>{pod.body}</span>
+      </span>
+    )
+  }
+
+  private renderQpContent(qp: Pod, quote: JSX.Element) {
     return (
       <>
-        {this.renderPod(qp as Pod, "qp")}
-        <div className={styles.rp_border}>
-          {qp.quote ? (
-            this.renderPod(qp.quote, "pod")
-          ) : (
-            <span className={styles.dp_disp}>*** the pod was deleted ***</span>
-          )}
-        </div>
+        <span className={styles.dp_disp}>
+          <Link href={qp.from.account_unique_uri} target="_blank">
+            {qp.from.screen_name} さんがQPしました ↰
+          </Link>
+        </span>
+        <span className={styles.article_container_flex_box}>
+          {this.renderIcon(qp)}
+          {this.renderBodyAndAccount(qp)}
+        </span>
+        <div className={styles.rp_border}>{quote}</div>
+        <span className={styles.article_container_flex_box}>
+          {this.renderReplyButton()}
+          {this.renderRpButtonForQp(qp)}
+          {this.renderFavButtonForQp(qp)}
+        </span>
       </>
     )
   }
 
+  private renderQp(qp: QpPod) {
+    const qp_pod = qp as Pod
+    const content = qp.pod ?? qp.qp
+
+    let quote: JSX.Element
+    if (content) {
+      quote = (
+        <>
+          <span className={styles.article_container_flex_box}>
+            {this.renderIcon(content)}
+            {this.renderBodyAndAccount(content)}
+          </span>
+        </>
+      )
+    } else {
+      quote = <span className={styles.dp_disp}>*** the pod was deleted ***</span>
+    }
+
+    return this.renderQpContent(qp_pod, quote)
+  }
+
   private renderDp(dp: DpPod) {
+    const content = dp.pod ?? dp.qp
+    let quote: JSX.Element
+    if (content) {
+      if (dp.pod) {
+        quote = this.renderPod(content)
+      } else {
+        const link = (
+          <Link className={styles.dp_disp} href={`/pod/${dp.qp?.id}`} target="_blank">
+            QP from ...
+          </Link>
+        )
+        quote = this.renderQpContent(dp.qp as Pod, link)
+      }
+    } else {
+      quote = <span className={styles.dp_disp}>*** the pod was deleted ***</span>
+    }
+
     return (
       <>
         <span className={styles.dp_disp}>
@@ -175,129 +346,42 @@ class Render {
             {dp.from.screen_name} さんがDPしました ⇄
           </Link>
         </span>
-        <div className={styles.rp_border}>
-          {dp.body ? (
-            this.renderPod(dp.body, "pod")
-          ) : (
-            <span className={styles.dp_disp}>*** the pod was deleted ***</span>
-          )}
-        </div>
+        <div className={styles.rp_border}>{quote}</div>
       </>
     )
   }
 
-  private renderPod(pod: Pod, type: Type) {
-    const clickable_area_id = `rp_selector_clickable_area_${v4()}`
-    const selector_id = `rp_selector_${v4()}`
+  private renderPod(pod: Pod) {
     return (
       <>
-        <span className={styles.article_container}>
-          <span className={styles.article_container_flex_box}>
-            <span className={styles.pod_container}>
-              <Link href={pod.from.icon_uri} target="_blank">
-                <Image src={pod.from.icon_uri} width={56} height={56} alt="icon" />
-              </Link>
-              <span className={styles.pod_right_container}>
-                <span className={styles.pod_right_container_flex_box}>
-                  <span
-                    className={`${styles.account_info_name} ${
-                      pod.mypod ? styles.account_info_thisis_me : ""
-                    }`}
-                  >
-                    <Link href={pod.from.account_unique_uri} target="_blank">
-                      {pod.from.screen_name}@{pod.from.identifier_name}
-                    </Link>
-                  </span>
-                  <span className={styles.account_info_timestamp}>
-                    <span className={styles.visibility}>
-                      {toIconFromVisibility(pod.visibility)}
-                    </span>
-                    {toDateString(pod.created_at)}
-                  </span>
-                </span>
-                <span>{pod.body}</span>
-              </span>
-            </span>
-          </span>
-          <span className={styles.article_container_footer}>
-            <span className={styles.article_container_flex_box}>
-              <span className={`${styles.article_container_footer_button}`}>◀</span>
-              <span className={`${styles.article_container_footer_button} ${styles.rp_container}`}>
-                <span
-                  id={clickable_area_id}
-                  className={styles.rp_selector_clickable_area}
-                  onClick={() => {
-                    hideElement(clickable_area_id)
-                    hideElement(selector_id)
-                  }}
-                />
-                <span id={selector_id} className={styles.rp_selecter}>
-                  <div
-                    className={`${styles.cursor} ${styles.rp_hover}`}
-                    onClick={() => {
-                      this.postDP(pod)
-                      hideElement(clickable_area_id)
-                      hideElement(selector_id)
-                    }}
-                  >
-                    DP (duplicate)
-                  </div>
-                  <div
-                    className={`${styles.cursor} ${styles.rp_hover}`}
-                    onClick={() => {
-                      this.openPodEditorViaQp(pod)
-                      hideElement(clickable_area_id)
-                      hideElement(selector_id)
-                    }}
-                  >
-                    QP (quote)
-                  </div>
-                </span>
-                <span
-                  className={`${styles.cursor}`}
-                  onClick={() => {
-                    showElement(clickable_area_id)
-                    showElement(selector_id)
-                  }}
-                >
-                  📣
-                </span>
-                <span className={styles.counter}>{pod.rp_count > 0 ? pod.rp_count : ""}</span>
-              </span>
-              <span className={styles.article_container_footer_button}>
-                <span className={styles.cursor}>
-                  {pod.favorited ? (
-                    <span onClick={() => this.unFav(pod, type)}>✨</span>
-                  ) : (
-                    <span onClick={() => this.Fav(pod, type)}>☆</span>
-                  )}
-                </span>
-                <span className={styles.counter}>
-                  {pod.favorite_count > 0 ? pod.favorite_count : ""}
-                </span>
-              </span>
-            </span>
-          </span>
+        <span className={styles.article_container_flex_box}>
+          {this.renderIcon(pod)}
+          {this.renderBodyAndAccount(pod)}
+        </span>
+        <span className={styles.article_container_flex_box}>
+          {this.renderReplyButton()}
+          {this.renderRpButtonForPod(pod)}
+          {this.renderFavButtonForPod(pod)}
         </span>
       </>
     )
   }
 
   private timelineTemplate(t: Timeline, index: number) {
-    let entry: JSX.Element;
+    let entry: JSX.Element
     switch (t.type) {
       case "pod":
-        entry = this.renderPod(t.pod as Pod, "pod");
-        break;
+        entry = this.renderPod(t.pod as Pod)
+        break
       case "dp":
-        entry = this.renderDp(t.dpPod as DpPod);
-        break;
+        entry = this.renderDp(t.dpPod as DpPod)
+        break
       case "qp":
-        entry = this.renderQp(t.qpPod as QpPod);
-        break;
+        entry = this.renderQp(t.qpPod as QpPod)
+        break
       default:
         entry = <>err</>
-        break;
+        break
     }
     return (
       <article className={styles.article} key={index}>
@@ -306,20 +390,21 @@ class Render {
     )
   }
 
-  private openPodEditorViaQp(pod: Pod) {
+  private openPodEditorViaQp(pod: Pod, type: Type) {
     const onSuccess = () => {
       this.setPopupContent(<></>)
-      hideElement(popup_container_id)
+      hideElement(this.popupContainerId)
       this.init()
     }
-    this.setPopupContent(<PodEditor pod={pod} type="qp" onPostSuccess={onSuccess} />)
-    showElement(popup_container_id)
+    this.setPopupContent(
+      <PodEditor pod={pod} isQp={true} rp_type={type} onPostSuccess={onSuccess} />
+    )
+    showElement(this.popupContainerId)
   }
 
   private Fav(pod: Pod, type: Type) {
     ;(async () => {
       const gql = new GqlClient()
-      console.log(pod)
       await gql.fetch({ id: pod.id, type: type }, queryFav)
       const res = gql.res.postFavorite as ResultObject
       if (res.value) {
@@ -339,10 +424,10 @@ class Render {
     })()
   }
 
-  private postDP(pod: Pod) {
+  private postDP(pod: Pod, type: Type) {
     ;(async () => {
       const gql = new GqlClient()
-      await gql.fetch({ id: pod.id, v: pod.visibility }, queryPostQP)
+      await gql.fetch({ id: pod.id, v: pod.visibility, type: type }, queryPostQP)
       const res = gql.res.createDpPod as ResultObject
       if (!res || gql.err) {
         console.error("failed to post DP")
@@ -371,22 +456,28 @@ class Render {
         this.setResult(this.result)
         return
       }
-      this.htl = gql.res.getHTL as Timeline[]
-      this.render()
+      if (!gql.res.getHTL) {
+        this.result.push(<>error🤔</>)
+        this.setResult(this.result)
+      } else {
+        this.htl = gql.res.getHTL as Timeline[]
+        this.render()
+      }
     })()
   }
 
   constructor(
     private readonly setResult: Dispatch<SetStateAction<JSX.Element[]>>,
-    private readonly setPopupContent: Dispatch<SetStateAction<JSX.Element>>
+    private readonly setPopupContent: Dispatch<SetStateAction<JSX.Element>>,
+    private readonly popupContainerId: string
   ) {}
 }
 
 const HTL: NextPage = () => {
   const [result, setResult] = useState<JSX.Element[]>([])
   const [popupContent, setPopupContent] = useState<JSX.Element>(<></>)
-
-  const render = new Render(setResult, setPopupContent)
+  const popup_container_id = "popup_container_2036eb66-279e-4cc5-8ce1-44c76d2e41ab"
+  const render = new Render(setResult, setPopupContent, popup_container_id)
   useEffect(() => {
     render.init()
   }, [])

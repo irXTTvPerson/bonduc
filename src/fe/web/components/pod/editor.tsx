@@ -3,7 +3,7 @@ import { useState } from "react"
 import { useForm, SubmitHandler } from "react-hook-form"
 import styles from "../../styles/PodEditor.module.css"
 import { GqlClient } from "../../components/common/gql"
-import { PodVisibility, Pod } from "../../@types/pod"
+import { PodVisibility, Pod, Type } from "../../@types/pod"
 import Image from "next/image"
 import { toIconFromVisibility, toDateString } from "../timeline/htl"
 import pod_style from "../../styles/HTL.module.css"
@@ -15,7 +15,8 @@ type Inputs = {
 }
 
 export type Props = {
-  type: "pod" | "dp" | "qp" | "none"
+  isQp: boolean
+  rp_type?: Type
   pod?: Pod
   onPostSuccess?: () => void
   onPostFail?: () => void
@@ -33,9 +34,10 @@ mutation ($body: String!, $v: PodVisibility!) {
 `
 
 const queryQp = `
-mutation ($id: String!, $body: String!, $v: PodVisibility!) {
+mutation ($id: String!, $body: String!, $v: PodVisibility!, $type: String!) {
   createQpPod(
-    pod_id: $id
+    rp_id: $id
+    type: $type
     body: $body
     visibility: $v
   ) {
@@ -68,7 +70,13 @@ const renderPod = (pod: Pod) => {
   )
 }
 
-const RenderForm = (type: string, pod?: Pod, onSuccess?: () => void, onFail?: () => void) => {
+const RenderForm = (
+  isQp: boolean,
+  rp_type?: Type,
+  pod?: Pod,
+  onSuccess?: () => void,
+  onFail?: () => void
+) => {
   const {
     register,
     handleSubmit,
@@ -80,12 +88,13 @@ const RenderForm = (type: string, pod?: Pod, onSuccess?: () => void, onFail?: ()
     setResult("podding...")
 
     const gql = new GqlClient()
-    if (type === "qp") {
+    if (isQp) {
       await gql.fetch(
         {
           id: pod?.id,
           body: data.body,
-          v: data.v
+          v: data.v,
+          type: rp_type
         },
         queryQp
       )
@@ -98,8 +107,7 @@ const RenderForm = (type: string, pod?: Pod, onSuccess?: () => void, onFail?: ()
         query
       )
     }
-    const res =
-      type === "qp" ? (gql.res.createQpPod as ResultObject) : (gql.res.createPod as ResultObject)
+    const res = isQp ? (gql.res.createQpPod as ResultObject) : (gql.res.createPod as ResultObject)
     if (res.value) {
       setResult("post success")
       if (onSuccess) onSuccess()
@@ -111,7 +119,7 @@ const RenderForm = (type: string, pod?: Pod, onSuccess?: () => void, onFail?: ()
 
   return (
     <>
-      {pod && type === "qp" ? (
+      {pod && isQp ? (
         <>
           このpodをQPします :<span className={styles.disp_pod}>{renderPod(pod)}</span>
         </>
@@ -151,7 +159,7 @@ const RenderForm = (type: string, pod?: Pod, onSuccess?: () => void, onFail?: ()
 const PodEditor: NextPage<Props> = (props: Props) => {
   return (
     <div className={styles.container}>
-      {RenderForm(props.type, props.pod, props.onPostSuccess, props.onPostFail)}
+      {RenderForm(props.isQp, props.rp_type, props.pod, props.onPostSuccess, props.onPostFail)}
     </div>
   )
 }

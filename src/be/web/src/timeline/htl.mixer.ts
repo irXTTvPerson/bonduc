@@ -1,15 +1,22 @@
 import { Config } from "../config";
-import { Account, Pod, DpPod, QpPod } from "@prisma/client";
+import { Account, Pod, DpPod, QpPod, QpContentType, DpContentType } from "@prisma/client";
 import { HomeTimeline, Type } from "./htl.model";
 import { DBService } from "../db/db.service";
 
-type TimelineCommonBase = { id: string; account_id: string; created_at: Date; type: string };
+type TimelineCommonBase = {
+  id: string;
+  account_id: string;
+  created_at: Date;
+  rp_id: string | null;
+  rp_type: QpContentType | DpContentType | null;
+  type: Type;
+};
 
-const defaultVisibility = `visibility in ('anyone'::"PodVisibility", 'login'::"PodVisibility", 'global'::"PodVisibility", 'local'::"PodVisibility", 'follower'::"PodVisibility")`
+const defaultVisibility = `visibility in ('anyone'::"PodVisibility", 'login'::"PodVisibility", 'global'::"PodVisibility", 'local'::"PodVisibility", 'follower'::"PodVisibility")`;
 
 const query = (following_place_holder: string, limit: number) =>
   `select
-  id, account_id, created_at, 'pod' as type
+  id, account_id, created_at, NULL as rp_id, NULL as rp_type, 'pod' as type
 from
   "Pod" p 
 where 
@@ -18,7 +25,7 @@ where
     (${defaultVisibility})
 union all
   select
-    id, account_id, created_at, 'dp' as type
+    id, account_id, created_at, rp_id, cast(rp_type as text), 'dp' as type
   from
     "DpPod" p 
   where 
@@ -27,7 +34,7 @@ union all
       (${defaultVisibility})
 union all
   select
-    id, account_id, created_at, 'qp' as type
+    id, account_id, created_at, rp_id, cast(rp_type as text), 'qp' as type
   from
     "QpPod" p
   where
@@ -70,9 +77,7 @@ export class Mixer {
   private async getDpPods(timeline: TimelineCommonBase[]) {
     const dp_list = [
       ...new Set(
-        timeline
-          .map((v) => (v.type === "dp" ? v.id : undefined))
-          .filter((v) => v !== undefined)
+        timeline.map((v) => (v.type === "dp" ? v.id : undefined)).filter((v) => v !== undefined)
       )
     ];
     const dp_place_holder = this.gen_place_holder(dp_list.length);
@@ -88,11 +93,12 @@ export class Mixer {
 
   private async getQpPods(timeline: TimelineCommonBase[]) {
     const qp_list = [
-      ...new Set(
-        timeline
-          .map((v) => (v.type === "qp" ? v.id : undefined))
+      ...new Set([
+        ...timeline.map((v) => (v.type === "qp" ? v.id : undefined)).filter((v) => v !== undefined),
+        ...timeline
+          .map((v) => (v?.rp_type === "qp" ? v?.rp_id : undefined))
           .filter((v) => v !== undefined)
-      )
+      ])
     ];
     const qp_place_holder = this.gen_place_holder(qp_list.length);
     let qp_pods: QpPod[] = [];
@@ -105,48 +111,60 @@ export class Mixer {
     return qp_pods;
   }
 
-  private async getPodsAndFavs(timeline: TimelineCommonBase[], dp_pods: DpPod[], qp_pods: QpPod[], account: Account) {
-    const pool = this.dbSerVice.pool;
-    const promise = [];
+  private async getPods(timeline: TimelineCommonBase[]) {
     const pod_list = [
       ...new Set([
         ...timeline
           .map((v) => (v.type === "pod" ? v.id : undefined))
           .filter((v) => v !== undefined),
-        ...dp_pods.map((v) => v.rp_id),
-        ...qp_pods.map((v) => v.id),
+        ...timeline
+          .map((v) => (v?.rp_type === "pod" ? v?.rp_id : undefined))
+          .filter((v) => v !== undefined)
       ])
     ];
     const pod_place_holder = this.gen_place_holder(pod_list.length);
     let pods: Pod[] = [];
+
+    if (pod_list.length > 0) {
+      pods = await this.dbSerVice.pool[2].$queryRawUnsafe(
+        `select * from "Pod" p where id in (${pod_place_holder})`,
+        ...pod_list
+      );
+    }
+    return pods;
+  }
+
+  private async getFavs(timeline: TimelineCommonBase[], account: Account) {
+    const pod_list = [
+      ...new Set([
+        ...timeline
+          .map((v) => (v.type === "pod" || v.type === "qp" ? v.id : undefined))
+          .filter((v) => v !== undefined),
+        ...timeline
+          .map((v) => (v?.rp_type === "pod" || v?.rp_type === "qp" ? v?.rp_id : undefined))
+          .filter((v) => v !== undefined)
+      ])
+    ];
+
+    const pod_place_holder = this.gen_place_holder(pod_list.length);
     let favs: { rp_id: string }[] = [];
 
     if (pod_list.length > 0) {
-      // podを取得する
-      promise.push(
-        pool[0].$queryRawUnsafe(
-          `select * from "Pod" p where id in (${pod_place_holder})`,
-          ...pod_list
-        )
+      favs = await this.dbSerVice.pool[3].$queryRawUnsafe(
+        `select rp_id from "Favorite" f where rp_id in (${pod_place_holder}) and account_id='${account.id}'`,
+        ...pod_list
       );
-
-      // podをfavしてるか取得する
-      promise.push(
-        pool[1].$queryRawUnsafe(
-          `select rp_id from "Favorite" f where rp_id in (${pod_place_holder}) and account_id='${account.id}'`,
-          ...pod_list
-        )
-      );
-
-      pods = await promise[0];
-      favs = await promise[1];
     }
-    return { pods, favs };
+    return favs;
   }
 
-  private async getAccounts(timeline: TimelineCommonBase[], pods: Pod[]) {
+  private async getAccounts(timeline: TimelineCommonBase[], pods: Pod[], qp: QpPod[]) {
     const account_list = [
-      ...new Set([...timeline.map((v) => v.account_id), ...pods.map((v) => v.account_id)])
+      ...new Set([
+        ...timeline.map((v) => v.account_id),
+        ...pods.map((v) => v.account_id),
+        ...qp.map((v) => v.account_id)
+      ])
     ];
     const account_place_holder = this.gen_place_holder(account_list.length);
     let accounts: Account[] = [];
@@ -171,21 +189,31 @@ export class Mixer {
     const ret = {};
     const qp = qp_pods.find((e) => e.id === v.id);
     const qp_from = accounts.find((e) => e.id === v.account_id);
-    const pod = pods.find((e) => e.id === qp.pod_id);
-    const pod_from = accounts.find((e) => e.id === pod?.account_id);
-    const pod_fav = favs.find((e) => e.rp_id === pod?.id);
     const qp_fav = favs.find((e) => e.rp_id === qp.id);
+    const pod = pods.find((e) => e.id === qp.rp_id);
+    const pod_from = accounts.find((e) => e.id === pod?.account_id);
+    const qp_pod = qp_pods.find((e) => e.id === qp.rp_id);
+    const qp_pod_from = accounts.find((e) => e.id === qp_pod?.account_id);
     ret["type"] = v.type as Type;
     ret["qpPod"] = qp;
     ret["qpPod"]["favorited"] = qp_fav ? true : false;
     ret["qpPod"]["mypod"] = qp_from.id === account.id ? true : false;
     ret["qpPod"]["from"] = qp_from;
+    ret["qpPod"]["type"] = (pod ? "pod" : "qp") as QpContentType;
     if (pod) {
       // podは削除済み又は非公開で取得できないケースがある
-      ret["qpPod"]["quote"] = pod;
-      ret["qpPod"]["quote"]["favorited"] = pod_fav ? true : false;
-      ret["qpPod"]["quote"]["mypod"] = pod_from.id === account.id ? true : false;
-      ret["qpPod"]["quote"]["from"] = pod_from;
+      const fav = favs.find((e) => e.rp_id === pod.id);
+      ret["qpPod"]["pod"] = pod;
+      ret["qpPod"]["pod"]["favorited"] = fav ? true : false;
+      ret["qpPod"]["pod"]["mypod"] = pod_from.id === account.id ? true : false;
+      ret["qpPod"]["pod"]["from"] = pod_from;
+    }
+    if (qp_pod) {
+      const fav = favs.find((e) => e.rp_id === qp_pod.id);
+      ret["qpPod"]["qp"] = qp_pod;
+      ret["qpPod"]["qp"]["favorited"] = fav ? true : false;
+      ret["qpPod"]["qp"]["mypod"] = qp_pod_from.id === account.id ? true : false;
+      ret["qpPod"]["qp"]["from"] = qp_pod_from;
     }
     return ret as HomeTimeline;
   }
@@ -194,6 +222,7 @@ export class Mixer {
     v: TimelineCommonBase,
     pods: Pod[],
     dp_pods: DpPod[],
+    qp_pods: QpPod[],
     accounts: Account[],
     account: Account,
     favs: { rp_id: string }[]
@@ -203,16 +232,26 @@ export class Mixer {
     const dp_from = accounts.find((e) => e.id === v.account_id);
     const pod = pods.find((e) => e.id === dp.rp_id);
     const pod_from = accounts.find((e) => e.id === pod?.account_id);
-    const fav = favs.find((e) => e.rp_id === pod?.id);
+    const qp_pod = qp_pods.find((e) => e.id === dp.rp_id);
+    const qp_pod_from = accounts.find((e) => e.id === qp_pod?.account_id);
     ret["type"] = v.type as Type;
     ret["dpPod"] = dp;
     ret["dpPod"]["from"] = dp_from;
+    ret["dpPod"]["type"] = (pod ? "pod" : "qp") as DpContentType;
     if (pod) {
       // podは削除済み又は非公開で取得できないケースがある
-      ret["dpPod"]["body"] = pod;
-      ret["dpPod"]["body"]["favorited"] = fav ? true : false;
-      ret["dpPod"]["body"]["mypod"] = pod_from.id === account.id ? true : false;
-      ret["dpPod"]["body"]["from"] = pod_from;
+      const fav = favs.find((e) => e.rp_id === pod.id);
+      ret["dpPod"]["pod"] = pod;
+      ret["dpPod"]["pod"]["favorited"] = fav ? true : false;
+      ret["dpPod"]["pod"]["mypod"] = pod_from.id === account.id ? true : false;
+      ret["dpPod"]["pod"]["from"] = pod_from;
+    }
+    if (qp_pod) {
+      const fav = favs.find((e) => e.rp_id === qp_pod.id);
+      ret["dpPod"]["qp"] = qp_pod;
+      ret["dpPod"]["qp"]["favorited"] = fav ? true : false;
+      ret["dpPod"]["qp"]["mypod"] = qp_pod_from.id === account.id ? true : false;
+      ret["dpPod"]["qp"]["from"] = qp_pod_from;
     }
     return ret as HomeTimeline;
   }
@@ -250,7 +289,7 @@ export class Mixer {
         case "qp":
           return this.generateQp(v, pods, qp_pods, accounts, account, favs);
         case "dp":
-          return this.generateDp(v, pods, dp_pods, accounts, account, favs);
+          return this.generateDp(v, pods, dp_pods, qp_pods, accounts, account, favs);
         case "pod":
           return this.generatePod(v, pods, accounts, account, favs);
       }
@@ -269,17 +308,16 @@ export class Mixer {
       return [];
     }
 
-    // dpとqpを取得する
-    const [dp_pods, qp_pods] = await Promise.all([
+    // pod, dp, qp, fav を取得する
+    const [dp_pods, qp_pods, pods, favs] = await Promise.all([
       this.getDpPods(timeline),
-      this.getQpPods(timeline)
+      this.getQpPods(timeline),
+      this.getPods(timeline),
+      this.getFavs(timeline, account)
     ]);
 
-    // podとfavしてるかを取得する
-    const { pods, favs } = await this.getPodsAndFavs(timeline, dp_pods, qp_pods, account);
-
     // accountを取得する
-    const accounts = await this.getAccounts(timeline, pods);
+    const accounts = await this.getAccounts(timeline, pods, qp_pods);
 
     // 結果をとりまとめてHomeTimeline[]に変換する
     const result = this.convertToResult(timeline, pods, dp_pods, qp_pods, accounts, account, favs);

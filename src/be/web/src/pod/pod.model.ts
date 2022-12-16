@@ -1,6 +1,6 @@
 import { Field, ObjectType, registerEnumType, Int } from "@nestjs/graphql";
 import { Account } from "../account/account.model";
-import { PodVisibility } from "@prisma/client";
+import { PodVisibility, QpContentType, DpContentType } from "@prisma/client";
 
 @ObjectType()
 export class Pod {
@@ -33,24 +33,6 @@ export class Pod {
 }
 
 @ObjectType()
-export class DpPod {
-  @Field()
-  id: string = "";
-
-  @Field()
-  created_at: Date = new Date("2000-01-01T00:00:00");
-
-  @Field(() => Account)
-  from: Account = new Account();
-
-  @Field(() => Pod, { nullable: true })
-  body?: Pod = null;
-
-  @Field()
-  visibility: PodVisibility = "global";
-}
-
-@ObjectType()
 export class QpPod {
   @Field()
   id: string = "";
@@ -80,7 +62,40 @@ export class QpPod {
   mypod: boolean = false;
 
   @Field(() => Pod, { nullable: true })
-  quote?: Pod = null;
+  pod?: Pod = null;
+
+  // 無限に自己参照が続く可能性があるので1階層しか取得しない
+  @Field(() => QpPod, { nullable: true })
+  qp?: QpPod = null;
+
+  @Field(() => QpContentType)
+  type: QpContentType;
+}
+
+@ObjectType()
+export class DpPod {
+  @Field()
+  id: string = "";
+
+  @Field()
+  created_at: Date = new Date("2000-01-01T00:00:00");
+
+  @Field(() => Account)
+  from: Account = new Account();
+
+  @Field(() => Pod, { nullable: true })
+  pod?: Pod = null;
+
+  @Field(() => QpPod, { nullable: true })
+  qp?: QpPod = null;
+
+  @Field()
+  visibility: PodVisibility = "global";
+
+  @Field(() => DpContentType)
+  type: DpContentType;
 }
 
 registerEnumType(PodVisibility, { name: "PodVisibility" });
+registerEnumType(DpContentType, { name: "DpContentType" });
+registerEnumType(QpContentType, { name: "QpContentType" });

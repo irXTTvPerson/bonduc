@@ -67,6 +67,16 @@ enum PodVisibility {
   myself // just myself only
 }
 
+enum DpContentType {
+  pod
+  qp
+}
+
+enum QpContentType {
+  pod
+  qp
+}
+
 model Pod {
   id             String        @id @unique @default(dbgenerated("gen_random_uuid()"))
   created_at     DateTime      @default(now())
@@ -90,8 +100,9 @@ model DpPod {
   account_id String
   visibility PodVisibility @default(global)
   rp_id      String // podかqpのid
+  rp_type    DpContentType
 
-  @@unique([account_id, rp_id])
+  @@unique([account_id, rp_id, rp_type])
 }
 
 model QpPod {
@@ -106,9 +117,10 @@ model QpPod {
   favorite_count Int           @default(0)
   rp_count       Int           @default(0)
   visibility     PodVisibility @default(global)
-  pod_id         String
+  rp_id          String // podかqpのid
+  rp_type        QpContentType
 
-  @@unique([account_id, pod_id])
+  @@unique([account_id, rp_id, rp_type])
 }
 
 enum NotifyType {
@@ -171,7 +183,7 @@ model Follow {
 model Favorite {
   created_at DateTime @default(now())
   from       Account  @relation(fields: [account_id], references: [id])
-  rp_id      String // podのidかqpのid
+  rp_id      String // podかqpのid
   account_id String
 
   @@unique([rp_id, account_id])
