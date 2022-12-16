@@ -1,4 +1,3 @@
-import { Config } from "../config";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
 export const sendEmail = async (
