@@ -64,7 +64,11 @@ describe("DraftAccountService", () => {
           identifier_name: validData.identifier_name,
           screen_name: validData.screen_name,
           ip_address: ["127.0.0.1"],
-          account_unique_uri: "hoge"
+          account_unique_uri: "hoge",
+          inbox: `inbox`,
+          outbox: `outbox`,
+          follower_uri: `follower`,
+          following_uri: `following`
         }
       });
 
@@ -120,7 +124,11 @@ describe("DraftAccountService", () => {
           identifier_name: validData.identifier_name,
           screen_name: validData.screen_name,
           ip_address: ["127.0.0.1"],
-          account_unique_uri: "hoge"
+          account_unique_uri: "hoge",
+          inbox: `inbox`,
+          outbox: `outbox`,
+          follower_uri: `follower`,
+          following_uri: `following`
         }
       });
       const a = Object.assign({}, validData);

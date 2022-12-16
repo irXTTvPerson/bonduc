@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
-import { prisma } from "../../lib/prisma";
 import { hash } from "../../lib/hash";
+import { DBService } from "../../db/db.service";
 
 export type DeleteRequest = {
   email: string;
@@ -16,10 +16,12 @@ export const isValidPost = (body: any): body is DeleteRequest =>
 export class UnregisterService {
   private readonly logger = new Logger("UnegisterService");
 
+  constructor(private readonly dbService: DBService) {}
+
   async unregister(args: DeleteRequest) {
     args.password = hash(args.password);
     try {
-      const account = await prisma.account.findUnique({
+      const account = await this.dbService.prisma.account.findUnique({
         where: { identifier_name: args.identifier_name }
       });
       if (!account) {
@@ -30,7 +32,9 @@ export class UnregisterService {
         this.logger.warn(`invalid password: db, ${account.password} vs input, ${args.password}`);
         return 400;
       }
-      await prisma.account.delete({ where: { identifier_name: args.identifier_name } });
+      await this.dbService.prisma.account.delete({
+        where: { identifier_name: args.identifier_name }
+      });
     } catch (e) {
       this.logger.error(`Unregister: failed due to ${e}`);
       return 500;

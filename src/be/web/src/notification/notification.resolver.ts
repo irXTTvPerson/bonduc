@@ -1,122 +1,141 @@
 import { Resolver, Mutation, Query, Args } from "@nestjs/graphql";
-import { Notification } from "./notification.model";
-import { prisma } from "../lib/prisma";
+import { Notification, NotificationType } from "./notification.model";
 import { Config } from "../config";
-import { SessionValidater } from "../auth/gql.strategy";
-import { Account } from "@prisma/client";
-import { Account as GqlAccount } from "../account/account.model";
+import { SessionValidater, accountValidator } from "../auth/gql.strategy";
+import { Prisma, PrismaPromise } from "@prisma/client";
 import { Logger } from "@nestjs/common";
-
-class QueryHelper {
-  hasBuildSelectQuery: boolean = false;
-  selectQuery: string = "";
-
-  /*
-  select 
-    * <- ここをfrom_account, to_account, notificationにしたい
-  from 
-    "Account" a 
-  inner join 
-    "Notification" n 
-  on
-    a.id = n.to_account_id
-  and
-    a.identifier_name = $1
-  inner join
-    "Account" b
-  on
-    b.id = n.from_account_id
-  order by 
-    n.created_at desc
-  limit
-    $2
-  */
-  async build() {
-    if (this.hasBuildSelectQuery) {
-      return this.selectQuery;
-    }
-    this.hasBuildSelectQuery = true;
-
-    this.selectQuery = "select ";
-    let res: any = await prisma.$queryRawUnsafe(
-      `select column_name from information_schema.columns where table_name = 'Account' order by ordinal_position;`
-    );
-
-    const account = new GqlAccount();
-    for (const i of res) {
-      // 不要な列をselectしないよう除外
-      if (!(i.column_name in account)) {
-        continue;
-      }
-      this.selectQuery += `a.${i.column_name} as __to_${i.column_name},`;
-      this.selectQuery += `b.${i.column_name} as __from_${i.column_name},`;
-    }
-    res = await prisma.$queryRawUnsafe(
-      `select column_name from information_schema.columns where table_name = 'Notification' order by ordinal_position;`
-    );
-    for (const i of res) {
-      this.selectQuery += `n.${i.column_name},`;
-    }
-    this.selectQuery = this.selectQuery.slice(0, -1);
-    this.selectQuery += " ";
-    this.selectQuery += `from "Account" a inner join "Notification" n on a.id = n.to_account_id and a.identifier_name = $1 inner join "Account" b on b.id = n.from_account_id order by n.created_at desc limit $2;`;
-    return this.selectQuery;
-  }
-
-  toNotification(res: any) {
-    const ret: Notification[] = [];
-    for (const row of res) {
-      const nt: Notification = new Notification();
-      for (const key in row) {
-        const from_key: string | undefined = key.split("__from_")[1];
-        const to_key: string | undefined = key.split("__to_")[1];
-        if (from_key && from_key in nt.from) nt.from[from_key] = row[key];
-        else if (to_key && to_key in nt.to) nt.to[to_key] = row[key];
-        else if (key in nt) nt[key] = row[key];
-      }
-      ret.push(nt);
-    }
-    return ret;
-  }
-}
+import { ResultObject } from "../result/result.model";
+import { DBService } from "../db/db.service";
 
 @Resolver()
 export class NotificationResolver {
-  helper: QueryHelper = new QueryHelper();
   private readonly logger = new Logger("NotificationResolver");
 
+  constructor(private readonly dbService: DBService) {}
+
   @Query(() => [Notification], { nullable: "itemsAndList" })
-  async getNotification(@SessionValidater() account: Account) {
+  async getNotification(@SessionValidater() ctx) {
+    const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      const res: any = await prisma.$queryRawUnsafe(
-        await this.helper.build(),
-        account.identifier_name,
-        Config.limit.notification.find_at_once
-      );
-      return this.helper.toNotification(res);
+      const condition = (ct: number) => {
+        return {
+          where: { to_account_id: account.id, opened: false },
+          include: { from: true },
+          take: ct,
+          orderBy: { created_at: "desc" as Prisma.SortOrder }
+        };
+      };
+      const coundCond = { where: { to_account_id: account.id, opened: false } };
+
+      // 何件ずつデータを取ってくるべきか計算する
+      const limit = Config.limit.notification.find_at_once;
+      const count = [
+        await this.dbService.prisma.followRequest.count(coundCond),
+        await this.dbService.prisma.acceptFollowRequest.count(coundCond),
+        await this.dbService.prisma.rejectFollowRequest.count(coundCond),
+        await this.dbService.prisma.notifyFollowed.count(coundCond)
+      ];
+      const div = limit / count.length;
+      let summation = count.reduce((s, n) => s + n);
+      while (summation > limit) {
+        for (let i = 0; i < count.length; i++) {
+          if (count[i] > div) {
+            count[i]--;
+          }
+        }
+        summation = count.reduce((s, n) => s + n);
+      }
+
+      if (summation === 0) {
+        return [];
+      }
+
+      const ret: Notification[] = [];
+      const notifications = [
+        ["FollowRequest", this.dbService.prisma.followRequest.findMany(condition(count[0]))],
+        [
+          "AcceptFollowRequest",
+          this.dbService.prisma.acceptFollowRequest.findMany(condition(count[1]))
+        ],
+        [
+          "RejectFollowRequest",
+          this.dbService.prisma.rejectFollowRequest.findMany(condition(count[2]))
+        ],
+        ["Followed", this.dbService.prisma.notifyFollowed.findMany(condition(count[3]))]
+      ];
+
+      for (const notification of notifications) {
+        const type = notification[0] as NotificationType;
+        const promise = notification[1] as PrismaPromise<any[]>;
+        const result = await promise;
+
+        for (const row of result) {
+          ret.push({
+            created_at: row.created_at,
+            type: type,
+            opened: false,
+            from: row.from
+          });
+        }
+      }
+
+      ret.sort((a, b) => {
+        return a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0;
+      });
+      return ret.slice(0, Config.limit.notification.find_at_once);
     } catch (e) {
       this.logger.error(e);
       return null;
     }
   }
 
-  @Mutation(() => Notification, { nullable: true })
+  @Mutation(() => ResultObject)
   async openNotification(
-    @SessionValidater() account: Account,
-    @Args("id", { type: () => String }) id: string
+    @SessionValidater() ctx,
+    @Args("identifier_name", { type: () => String }) identifier_name: string,
+    @Args("type", { type: () => String }) type: NotificationType
   ) {
+    const res = new ResultObject();
+    const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      return await prisma.notification.update({
+      const from_account = await this.dbService.prisma.account.findUnique({
+        select: { id: true },
+        where: { identifier_name: identifier_name }
+      });
+      const updateCondition = {
         where: {
-          id: id
+          from_account_id_to_account_id: {
+            to_account_id: account.id,
+            from_account_id: from_account.id
+          }
         },
         data: {
           opened: true
         }
-      });
+      };
+
+      switch (type) {
+        case "FollowRequest":
+          await this.dbService.prisma.followRequest.update(updateCondition);
+          break;
+        case "AcceptFollowRequest":
+          await this.dbService.prisma.acceptFollowRequest.update(updateCondition);
+          break;
+        case "RejectFollowRequest":
+          await this.dbService.prisma.rejectFollowRequest.update(updateCondition);
+          break;
+        case "Followed":
+          await this.dbService.prisma.notifyFollowed.update(updateCondition);
+          break;
+        default:
+          break;
+      }
+      res.value = true;
     } catch (e) {
       this.logger.error(e);
-      return null;
+      res.value = false;
+    } finally {
+      return res;
     }
   }
 }

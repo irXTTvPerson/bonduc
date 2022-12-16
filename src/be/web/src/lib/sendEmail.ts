@@ -1,4 +1,3 @@
-import { Config } from "../config";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
 export const sendEmail = async (
@@ -11,10 +10,10 @@ export const sendEmail = async (
 
   try {
     ses = new SESClient({
-      region: Config.aws.region,
+      region: process.env.AWS_REGION,
       credentials: {
-        accessKeyId: Config.aws.accessKeyId,
-        secretAccessKey: Config.aws.secretAccessKey
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
       }
     });
 
@@ -35,7 +34,7 @@ export const sendEmail = async (
             Data: subject
           }
         },
-        Source: Config.aws.confirmationEmailFrom
+        Source: process.env.AWS_CONFIRMATION_EMAIL_FROM
       })
     );
   } catch (e) {

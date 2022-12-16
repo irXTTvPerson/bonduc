@@ -4,7 +4,6 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import styles from "../styles/Account.module.css"
 import { GqlClient } from "../components/common/gql"
 import { Account } from "../@types/account"
-import { FollowRequest } from "../@types/follow"
 import { ResultObject } from "../@types/result"
 
 type Props = {
@@ -18,12 +17,12 @@ query($identifier_name: String!) {
     created_at
     identifier_name
     screen_name
-    header_url
-    icon_url
+    header_uri
+    icon_uri
     bio
   }
   hasFollowRequestSent(identifier_name: $identifier_name) {
-    status
+    value
   }
   isFollowing(identifier_name: $identifier_name) {
     value
@@ -37,7 +36,7 @@ query($identifier_name: String!) {
 const queryFollowRequest = `
 mutation($identifier_name: String!) {
   createFollowRequest(identifier_name: $identifier_name) {
-    status
+    value
   }
 }
 `
@@ -63,8 +62,9 @@ class AccountRender {
     created_at: "",
     screen_name: "",
     identifier_name: "",
-    header_url: "",
-    icon_url: ""
+    header_uri: "",
+    icon_uri: "",
+    account_unique_uri: ""
   }
 
   constructor(setResult: SetState) {
@@ -75,10 +75,10 @@ class AccountRender {
     return (
       <>
         <header>
-          <Image src={a.header_url} alt="header" width={1024} height={256} />
+          <Image src={a.header_uri} alt="header" width={1024} height={256} />
         </header>
         <article key={a.identifier_name}>
-          <Image src={a.icon_url} alt="icon" width={128} height={128} />
+          <Image src={a.icon_uri} alt="icon" width={128} height={128} />
           {this.followButton}
           <section>{a.created_at}</section>
           <section>{a.screen_name}</section>
@@ -99,8 +99,8 @@ class AccountRender {
 
       const gql = new GqlClient()
       await gql.fetch({ identifier_name: this.account?.identifier_name }, queryFollowRequest)
-      const ret = gql.res.createFollowRequest as FollowRequest | null
-      if (ret?.status === "requested") {
+      const ret = gql.res.createFollowRequest as ResultObject
+      if (ret.value) {
         this.followStatus = "send follow request success"
         this.hasFollowRequestSent = true
       } else {
@@ -122,6 +122,7 @@ class AccountRender {
       const ret = gql.res.unFollow as ResultObject
       if (ret.value) {
         this.isFollowing = false
+        this.hasFollowRequestSent = false
       } else {
         this.followButton = <>unfollow failed</>
       }
@@ -155,7 +156,7 @@ class AccountRender {
       const gql = new GqlClient()
       await gql.fetch({ identifier_name: identifier_name }, query)
       const a = gql.res?.getAccount as Account | null
-      const n = gql.res?.hasFollowRequestSent as FollowRequest | null
+      const n = gql.res?.hasFollowRequestSent as ResultObject
       const f = gql.res?.isFollowing as ResultObject
       const m = gql.res?.isMe as ResultObject
       if (!a || gql.err) {
@@ -163,7 +164,7 @@ class AccountRender {
       } else {
         this.account = a
         this.is_me = m.value
-        if (!this.is_me && n?.status === "requested") {
+        if (!this.is_me && n.value) {
           this.hasFollowRequestSent = true
         }
         if (f.value) {

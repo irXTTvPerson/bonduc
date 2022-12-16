@@ -22,78 +22,169 @@ model DraftAccount {
 }
 
 model Account {
-  id                 String     @id @unique @default(dbgenerated("gen_random_uuid()"))
-  created_at         DateTime   @default(now())
-  updated_at         DateTime?  @updatedAt
-  email              String     @unique
-  password           String
-  ip_address         Json
-  screen_name        String
-  identifier_name    String     @unique
-  header_url         String     @default("/img/default_header.png")
-  icon_url           String     @default("/img/default_icon.png")
-  account_unique_uri String     @unique
-  bio                String?
-  Pod                Pod[]
-  setting            Setting?
-  Favorite           Favorite[]
+  id                  String                @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at          DateTime              @default(now())
+  updated_at          DateTime?             @updatedAt
+  last_pod_at         DateTime?
+  email               String                @unique
+  password            String
+  ip_address          String[]
+  screen_name         String
+  inbox               String
+  outbox              String
+  follower_uri        String
+  following_uri       String
+  identifier_name     String                @unique
+  header_uri          String                @default("/img/default_header.png")
+  icon_uri            String                @default("/img/default_icon.png")
+  account_unique_uri  String                @unique
+  bio                 String?
+  pod_count           Int                   @default(0)
+  following_count     Int                   @default(0)
+  follower_count      Int                   @default(0)
+  Pod                 Pod[]
+  Favorite            Favorite[]
+  DpPod               DpPod[]
+  FollowRequest       FollowRequest[]
+  AcceptFollowRequest AcceptFollowRequest[]
+  RejectFollowRequest RejectFollowRequest[]
+  NotifyFollowed      NotifyFollowed[]
+  Follow              Follow[]
+  QpPod               QpPod[]
+}
+
+enum PodVisibility {
+  anyone
+  login // loggedin account only
+  global // global timeline only
+  local // local timeline only
+  following
+  follower
+  mutual // mutual following account only
+  mention // mentioned account only
+  list // listed in account only
+  password // password authenticated account only
+  myself // just myself only
+}
+
+enum DpContentType {
+  pod
+  qp
+}
+
+enum QpContentType {
+  pod
+  qp
 }
 
 model Pod {
-  id             String     @id @unique @default(dbgenerated("gen_random_uuid()"))
-  created_at     DateTime   @default(now())
-  updated_at     DateTime?  @updatedAt
-  to             Json
-  cc             Json?
-  from           Account    @relation(fields: [account_id], references: [id])
-  body           String
+  id             String        @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at     DateTime      @default(now())
+  updated_at     DateTime?     @updatedAt
+  to             String[]
+  cc             String[]
+  from           Account       @relation(fields: [account_id], references: [id])
   account_id     String
-  favorite_count Int        @default(0)
-  Favorite       Favorite[]
+  body           String
+  favorite_count Int           @default(0)
+  rp_count       Int           @default(0)
+  visibility     PodVisibility @default(global)
 }
 
-model Setting {
-  id                       String  @id @unique @default(dbgenerated("gen_random_uuid()"))
-  who                      Account @relation(fields: [account_id], references: [id])
-  account_id               String  @unique
-  turn_notification_off    Boolean @default(false)
-  allow_all_follow_request Boolean @default(true)
+model DpPod {
+  id         String        @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at DateTime      @default(now())
+  to         String[]
+  cc         String[]
+  from       Account       @relation(fields: [account_id], references: [id])
+  account_id String
+  visibility PodVisibility @default(global)
+  rp_id      String // podかqpのid
+  rp_type    DpContentType
+
+  @@unique([account_id, rp_id, rp_type])
 }
 
-enum NotificationType {
-  follow_requested
-  follow_request_accepted
-  follow_request_rejected
-  followed
-  muted
-  blocked
-  liked
-  RTed
+model QpPod {
+  id             String        @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at     DateTime      @default(now())
+  updated_at     DateTime?     @updatedAt
+  to             String[]
+  cc             String[]
+  from           Account       @relation(fields: [account_id], references: [id])
+  account_id     String
+  body           String
+  favorite_count Int           @default(0)
+  rp_count       Int           @default(0)
+  visibility     PodVisibility @default(global)
+  rp_id          String // podかqpのid
+  rp_type        QpContentType
+
+  @@unique([account_id, rp_id, rp_type])
 }
 
-model Notification {
-  id              String           @id @unique @default(dbgenerated("gen_random_uuid()"))
-  created_at      DateTime         @default(now())
-  to_account_id   String // 受信
-  from_account_id String // 発信
-  type            NotificationType
-  context         String? // 何に対して行ったか　Pod|Account のid
-  deactivated     Boolean          @default(false) // 通知画面からの操作を受け付けるか
-  opened          Boolean          @default(false)
+enum NotifyType {
+  FollowRequest
+  AcceptFollowRequest
+  RejectFollowRequest
+  Followed
+  INVALID
+}
+
+model FollowRequest {
+  from_account_id String
+  created_at      DateTime @default(now())
+  to_account_id   String
+  opened          Boolean  @default(false)
+  from            Account  @relation(fields: [from_account_id], references: [id])
+
+  @@unique([from_account_id, to_account_id])
+}
+
+model AcceptFollowRequest {
+  from_account_id String
+  created_at      DateTime @default(now())
+  to_account_id   String
+  opened          Boolean  @default(false)
+  from            Account  @relation(fields: [from_account_id], references: [id])
+
+  @@unique([from_account_id, to_account_id])
+}
+
+model RejectFollowRequest {
+  from_account_id String
+  created_at      DateTime @default(now())
+  to_account_id   String
+  opened          Boolean  @default(false)
+  from            Account  @relation(fields: [from_account_id], references: [id])
+
+  @@unique([from_account_id, to_account_id])
+}
+
+model NotifyFollowed {
+  from_account_id String
+  created_at      DateTime @default(now())
+  to_account_id   String
+  opened          Boolean  @default(false)
+  from            Account  @relation(fields: [from_account_id], references: [id])
+
+  @@unique([from_account_id, to_account_id])
 }
 
 model Follow {
-  id              String   @id @unique @default(dbgenerated("gen_random_uuid()"))
-  created_at      DateTime @default(now())
   from_account_id String
+  from            Account  @relation(fields: [from_account_id], references: [id])
+  created_at      DateTime @default(now())
   to_account_id   String
+
+  @@unique([from_account_id, to_account_id])
 }
 
 model Favorite {
-  id         String   @id @unique @default(dbgenerated("gen_random_uuid()"))
   created_at DateTime @default(now())
-  to         Pod      @relation(fields: [pod_id], references: [id])
   from       Account  @relation(fields: [account_id], references: [id])
-  pod_id     String
+  rp_id      String // podかqpのid
   account_id String
+
+  @@unique([rp_id, account_id])
 }
