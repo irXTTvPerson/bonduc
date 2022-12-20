@@ -113,6 +113,15 @@ mutation ($id: String!, $v: PodVisibility!, $type: String!) {
 }
 `
 
+const queryGetDecryptedPodBody = `
+query ($id: String!, $password: String!) {
+  getDecryptedPodBody(id:$id, password: $password) {
+    value
+    message
+  }
+}
+`
+
 export const toDateString = (date: string) => {
   const d = new Date(date)
   return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`
@@ -138,6 +147,8 @@ export const toIconFromVisibility = (v: PodVisibility) => {
       return <>🌏</>
     case "follower":
       return <>👨‍👩‍👧‍👦</>
+    case "password":
+      return <>🔐</>
     default:
       return <>㊙</>
   }
@@ -266,6 +277,33 @@ class Render {
     )
   }
 
+  private renderBody(pod: Pod) {
+    const hide_form = pod.decrypted === true
+    if (pod.visibility === "password" && hide_form === false) {
+      return (
+        <span className={styles.dp_disp}>
+          <div>
+            * パスワード制限がついています *
+          </div>
+          <div>
+            <input
+              type="password"
+              onChange={(e) => pod.password = e.target.value}
+            />
+            <button onClick={() => this.decryptPod(pod)}>
+              🔑
+            </button>
+          </div>
+        </span>
+      )
+    }
+    else {
+      return (
+        <span>{pod.body}</span>
+      )
+    }
+  }
+
   private renderBodyAndAccount(pod: Pod) {
     return (
       <span className={styles.pod_right_container}>
@@ -273,7 +311,7 @@ class Render {
           {this.renderAccountName(pod)}
           {this.renderTimestamp(pod)}
         </span>
-        <span>{pod.body}</span>
+        {this.renderBody(pod)}
       </span>
     )
   }
@@ -390,6 +428,14 @@ class Render {
     )
   }
 
+  private render() {
+    this.result = []
+    this.htl.forEach((t, i) => {
+      this.result.push(this.timelineTemplate(t, i))
+    })
+    this.setResult(this.result)
+  }
+
   private openPodEditorViaQp(pod: Pod, type: Type) {
     const onSuccess = () => {
       this.setPopupContent(<></>)
@@ -439,12 +485,26 @@ class Render {
     })()
   }
 
-  private render() {
-    this.result = []
-    this.htl.forEach((t, i) => {
-      this.result.push(this.timelineTemplate(t, i))
-    })
-    this.setResult(this.result)
+  private decryptPod(pod: Pod) {
+    ;(async () => {
+      const gql = new GqlClient()
+      await gql.fetch({ id: pod.id, password: pod.password }, queryGetDecryptedPodBody)
+      const res = gql.res.getDecryptedPodBody as ResultObject
+      if (!res || gql.err) {
+        console.error("failed to getDecryptedPodBody")
+      } else {
+        if (res.value) {
+          for (const e of this.htl) {
+            const p = e.qpPod?.pod ?? e.dpPod?.pod ?? e.pod
+            if (p?.id === pod.id) {
+              pod.decrypted = p.decrypted = true
+              pod.body = p.body = res.message as string
+            }
+          }
+          this.render()
+        }
+      }
+    })()
   }
 
   init() {

@@ -12,7 +12,7 @@ type TimelineCommonBase = {
   type: Type;
 };
 
-const defaultVisibility = `visibility in ('anyone'::"PodVisibility", 'login'::"PodVisibility", 'global'::"PodVisibility", 'local'::"PodVisibility", 'follower'::"PodVisibility")`;
+const defaultVisibility = `visibility in ('anyone'::"PodVisibility", 'login'::"PodVisibility", 'global'::"PodVisibility", 'local'::"PodVisibility", 'follower'::"PodVisibility", 'password'::"PodVisibility")`;
 
 const query = (following_place_holder: string, limit: number) =>
   `select

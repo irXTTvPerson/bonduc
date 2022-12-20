@@ -89,6 +89,7 @@ model Pod {
   favorite_count Int           @default(0)
   rp_count       Int           @default(0)
   visibility     PodVisibility @default(global)
+  password       Json?
 }
 
 model DpPod {

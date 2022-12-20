@@ -47,6 +47,24 @@ mutation ($id: String!, $body: String!, $v: PodVisibility!, $type: String!) {
 `
 
 const renderPod = (pod: Pod) => {
+  let body: JSX.Element;
+  if (pod.visibility === "password") {
+    body = (
+      <span className={styles.dp_disp}>
+        * パスワード制限がついています *
+      </span>
+    )
+  }
+  else if (pod.body.length > 70) {
+    body = (
+      <span>{`${pod.body.slice(0, 70)} . . .`}</span>
+    )
+  } else {
+    body = (
+      <span>{pod.body}</span>
+    )
+  }
+
   return (
     <span className={pod_style.pod_container}>
       <Image src={pod.from.icon_uri} width={56} height={56} alt="icon" />
@@ -64,7 +82,7 @@ const renderPod = (pod: Pod) => {
             {toDateString(pod.created_at)}
           </span>
         </span>
-        <span>{pod.body.length > 70 ? `${pod.body.slice(0, 70)} . . .` : pod.body}</span>
+        {body}
       </span>
     </span>
   )
