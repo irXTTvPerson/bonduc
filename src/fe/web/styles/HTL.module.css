@@ -27,6 +27,7 @@
 
 .pod_right_container {
   width: 100%;
+  word-break: break-all;
 }
 
 .pod_right_container_flex_box {

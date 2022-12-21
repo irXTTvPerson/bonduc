@@ -25,6 +25,8 @@ export type Pod = {
   favorited: boolean
   visibility: PodVisibility
   mypod: boolean
+  password?: string
+  decrypted?: boolean
 }
 
 export type DpPod = {
