@@ -282,25 +282,15 @@ class Render {
     if (pod.visibility === "password" && hide_form === false) {
       return (
         <span className={styles.dp_disp}>
+          <div>* パスワード制限がついています *</div>
           <div>
-            * パスワード制限がついています *
-          </div>
-          <div>
-            <input
-              type="password"
-              onChange={(e) => pod.password = e.target.value}
-            />
-            <button onClick={() => this.decryptPod(pod)}>
-              🔑
-            </button>
+            <input type="password" onChange={(e) => (pod.password = e.target.value)} />
+            <button onClick={() => this.decryptPod(pod)}>🔑</button>
           </div>
         </span>
       )
-    }
-    else {
-      return (
-        <span>{pod.body}</span>
-      )
+    } else {
+      return <span>{pod.body}</span>
     }
   }
 

@@ -156,7 +156,7 @@ export class PodResolver {
       const iv = Buffer.from(json.iv, "hex");
       const key = Buffer.from(json.key, "hex");
       const authTag = Buffer.from(json.authTag, "hex");
-      
+
       const cipher = createDecipheriv(json.algo, key, iv, { authTagLength: 16 });
       cipher.setAuthTag(authTag);
       let decrypted_body = cipher.update(pod.body, "hex", "utf8");
@@ -185,6 +185,7 @@ export class PodResolver {
       let result: Account;
       switch (visibility) {
         case "password":
+          if (!password) throw new Error("password is needed");
           result = await this.createPodImplWithPassword(body, password, account);
           break;
         default:

@@ -1,6 +1,5 @@
 import type { NextPage } from "next"
-import { useState } from "react"
-import { useForm, SubmitHandler } from "react-hook-form"
+import { SetStateAction, useState, Dispatch } from "react"
 import styles from "../../styles/PodEditor.module.css"
 import { GqlClient } from "../../components/common/gql"
 import { PodVisibility, Pod, Type } from "../../@types/pod"
@@ -9,9 +8,19 @@ import { toIconFromVisibility, toDateString } from "../timeline/htl"
 import pod_style from "../../styles/HTL.module.css"
 import { ResultObject } from "../../@types/result"
 
-type Inputs = {
-  body: string
-  v: PodVisibility
+type Context = {
+  props: Props
+  setPasswordForm: Dispatch<SetStateAction<JSX.Element>>
+  setPassword: Dispatch<SetStateAction<string>>
+  setMessage: Dispatch<SetStateAction<string>>
+  setVisibility: Dispatch<SetStateAction<PodVisibility>>
+  setBody: Dispatch<SetStateAction<string>>
+
+  formData: {
+    body: string
+    visibility: PodVisibility
+    password: string
+  }
 }
 
 export type Props = {
@@ -23,10 +32,11 @@ export type Props = {
 }
 
 const query = `
-mutation ($body: String!, $v: PodVisibility!) {
+mutation ($body: String!, $v: PodVisibility!, $p: String) {
   createPod(
     body: $body
     visibility: $v
+    password: $p
   ) {
     value
   }
@@ -47,22 +57,13 @@ mutation ($id: String!, $body: String!, $v: PodVisibility!, $type: String!) {
 `
 
 const renderPod = (pod: Pod) => {
-  let body: JSX.Element;
+  let body: JSX.Element
   if (pod.visibility === "password") {
-    body = (
-      <span className={styles.dp_disp}>
-        * パスワード制限がついています *
-      </span>
-    )
-  }
-  else if (pod.body.length > 70) {
-    body = (
-      <span>{`${pod.body.slice(0, 70)} . . .`}</span>
-    )
+    body = <span className={styles.dp_disp}>* パスワード制限がついています *</span>
+  } else if (pod.body.length > 70) {
+    body = <span>{`${pod.body.slice(0, 70)} . . .`}</span>
   } else {
-    body = (
-      <span>{pod.body}</span>
-    )
+    body = <span>{pod.body}</span>
   }
 
   return (
@@ -88,96 +89,117 @@ const renderPod = (pod: Pod) => {
   )
 }
 
-const RenderForm = (
-  isQp: boolean,
-  rp_type?: Type,
-  pod?: Pod,
-  onSuccess?: () => void,
-  onFail?: () => void
-) => {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors }
-  } = useForm<Inputs>()
-
-  const [result, setResult] = useState("")
-  const onSubmit: SubmitHandler<Inputs> = async (data: Inputs): Promise<void> => {
-    setResult("podding...")
-
+const postPod = (context: Context) => {
+  ;(async () => {
+    context.setMessage("podding...")
     const gql = new GqlClient()
-    if (isQp) {
+    if (context.props.isQp) {
       await gql.fetch(
         {
-          id: pod?.id,
-          body: data.body,
-          v: data.v,
-          type: rp_type
+          id: context.props.pod?.id,
+          body: context.formData.body,
+          v: context.formData.visibility,
+          type: context.props.rp_type
         },
         queryQp
       )
     } else {
       await gql.fetch(
         {
-          body: data.body,
-          v: data.v
+          body: context.formData.body,
+          v: context.formData.visibility,
+          p: context.formData.password
         },
         query
       )
     }
-    const res = isQp ? (gql.res.createQpPod as ResultObject) : (gql.res.createPod as ResultObject)
+    const res = context.props.isQp
+      ? (gql.res.createQpPod as ResultObject)
+      : (gql.res.createPod as ResultObject)
     if (res.value) {
-      setResult("post success")
-      if (onSuccess) onSuccess()
+      context.setMessage("post success")
+      if (context.props.onPostSuccess) context.props.onPostSuccess()
     } else {
-      setResult("post failed")
-      if (onFail) onFail()
+      context.setMessage("post failed")
+      if (context.props.onPostFail) context.props.onPostFail()
+    }
+  })()
+}
+
+const renderPasswordForm = (context: Context, showForm: boolean) => {
+  if (showForm) {
+    context.setPasswordForm(
+      <>
+        パスワード:
+        <input type="password" onChange={(e) => context.setPassword(e.target.value)} />
+      </>
+    )
+  } else {
+    context.setPasswordForm(<></>)
+  }
+}
+
+const PodEditor: NextPage<Props> = (props: Props) => {
+  const [message, setMessage] = useState("")
+  const [password, setPassword] = useState("")
+  const [body, setBody] = useState("")
+  const [visibility, setVisibility] = useState<PodVisibility>("global")
+  const [passwordForm, setPasswordForm] = useState<JSX.Element>(<></>)
+
+  const context: Context = {
+    props: props,
+    setPasswordForm: setPasswordForm,
+    setPassword: setPassword,
+    setMessage: setMessage,
+    setVisibility: setVisibility,
+    setBody: setBody,
+    formData: {
+      body: body,
+      visibility: visibility,
+      password: password
     }
   }
 
   return (
-    <>
-      {pod && isQp ? (
+    <div className={styles.container}>
+      {props.pod && props.isQp ? (
         <>
-          このpodをQPします :<span className={styles.disp_pod}>{renderPod(pod)}</span>
+          このpodをQPします :<span className={styles.disp_pod}>{renderPod(props.pod)}</span>
         </>
       ) : (
         <></>
       )}
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div>
-          <textarea
-            className={styles.textarea}
-            {...register("body", { required: true })}
-          ></textarea>
-        </div>
-        公開範囲:
-        <select {...register("v", { required: true })} defaultValue={"global"}>
-          <option value={"anyone"}>誰でも</option>
-          <option value={"login"}>ログインユーザー</option>
-          <option value={"global"}>連合</option>
-          <option value={"local"}>ローカル</option>
-          <option value={"following"}>フォローしてる人</option>
-          <option value={"follower"}>フォロワー</option>
-          <option value={"mutual"}>相互</option>
-          <option value={"mention"}>メンションした人</option>
-          <option value={"list"}>リストに入ってる人</option>
-          <option value={"password"}>パスワード公開</option>
-          <option value={"myself"}>自分のみ</option>
-        </select>
-        <div>
-          <input type="submit" />
-        </div>
-      </form>
-      {errors.body || errors.v ? "all fields are required" : result}
-    </>
-  )
-}
-
-const PodEditor: NextPage<Props> = (props: Props) => {
-  return (
-    <div className={styles.container}>
-      {RenderForm(props.isQp, props.rp_type, props.pod, props.onPostSuccess, props.onPostFail)}
+      <div>
+        <textarea
+          className={styles.textarea}
+          onChange={(e) => context.setBody(e.target.value)}
+        ></textarea>
+      </div>
+      公開範囲:
+      <select
+        defaultValue={"global"}
+        onChange={(e) => {
+          context.setVisibility(e.target.value as PodVisibility)
+          renderPasswordForm(context, e.target.value === "password")
+        }}
+      >
+        <option value={"anyone"}>誰でも</option>
+        <option value={"login"}>ログインユーザー</option>
+        <option value={"global"}>連合</option>
+        <option value={"local"}>ローカル</option>
+        <option value={"following"}>フォローしてる人</option>
+        <option value={"follower"}>フォロワー</option>
+        <option value={"mutual"}>相互</option>
+        <option value={"mention"}>メンションした人</option>
+        <option value={"list"}>リストに入ってる人</option>
+        <option value={"password"}>パスワード公開</option>
+        <option value={"myself"}>自分のみ</option>
+      </select>
+      {passwordForm}
+      <div>
+        <button onClick={() => postPod(context)}>pod</button>
+      </div>
+      {message}
     </div>
   )
 }
