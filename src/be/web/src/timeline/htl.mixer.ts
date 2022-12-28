@@ -1,7 +1,9 @@
 import { Config } from "../config";
 import { Account, Pod, DpPod, QpPod, QpContentType, DpContentType } from "@prisma/client";
-import { HomeTimeline, Type } from "./htl.model";
+import { HomeTimeline } from "./htl.model";
 import { DBService } from "../db/db.service";
+
+type PodType = "pod" | "dp" | "qp";
 
 type TimelineCommonBase = {
   id: string;
@@ -9,7 +11,7 @@ type TimelineCommonBase = {
   created_at: Date;
   rp_id: string | null;
   rp_type: QpContentType | DpContentType | null;
-  type: Type;
+  type: PodType;
 };
 
 const defaultVisibility = `visibility in ('anyone'::"PodVisibility", 'login'::"PodVisibility", 'global'::"PodVisibility", 'local'::"PodVisibility", 'follower'::"PodVisibility", 'password'::"PodVisibility")`;
@@ -194,26 +196,25 @@ export class Mixer {
     const pod_from = accounts.find((e) => e.id === pod?.account_id);
     const qp_pod = qp_pods.find((e) => e.id === qp.rp_id);
     const qp_pod_from = accounts.find((e) => e.id === qp_pod?.account_id);
-    ret["type"] = v.type as Type;
-    ret["qpPod"] = qp;
-    ret["qpPod"]["favorited"] = qp_fav ? true : false;
-    ret["qpPod"]["mypod"] = qp_from.id === account.id ? true : false;
-    ret["qpPod"]["from"] = qp_from;
-    ret["qpPod"]["type"] = (pod ? "pod" : "qp") as QpContentType;
+    ret["qp"] = qp;
+    ret["qp"]["favorited"] = qp_fav ? true : false;
+    ret["qp"]["mypod"] = qp_from.id === account.id ? true : false;
+    ret["qp"]["from"] = qp_from;
+    ret["qp"]["type"] = (pod ? "pod" : "qp") as QpContentType;
     if (pod) {
       // podは削除済み又は非公開で取得できないケースがある
       const fav = favs.find((e) => e.rp_id === pod.id);
-      ret["qpPod"]["pod"] = pod;
-      ret["qpPod"]["pod"]["favorited"] = fav ? true : false;
-      ret["qpPod"]["pod"]["mypod"] = pod_from.id === account.id ? true : false;
-      ret["qpPod"]["pod"]["from"] = pod_from;
+      ret["qp"]["pod"] = pod;
+      ret["qp"]["pod"]["favorited"] = fav ? true : false;
+      ret["qp"]["pod"]["mypod"] = pod_from.id === account.id ? true : false;
+      ret["qp"]["pod"]["from"] = pod_from;
     }
     if (qp_pod) {
       const fav = favs.find((e) => e.rp_id === qp_pod.id);
-      ret["qpPod"]["qp"] = qp_pod;
-      ret["qpPod"]["qp"]["favorited"] = fav ? true : false;
-      ret["qpPod"]["qp"]["mypod"] = qp_pod_from.id === account.id ? true : false;
-      ret["qpPod"]["qp"]["from"] = qp_pod_from;
+      ret["qp"]["qp"] = qp_pod;
+      ret["qp"]["qp"]["favorited"] = fav ? true : false;
+      ret["qp"]["qp"]["mypod"] = qp_pod_from.id === account.id ? true : false;
+      ret["qp"]["qp"]["from"] = qp_pod_from;
     }
     return ret as HomeTimeline;
   }
@@ -234,24 +235,23 @@ export class Mixer {
     const pod_from = accounts.find((e) => e.id === pod?.account_id);
     const qp_pod = qp_pods.find((e) => e.id === dp.rp_id);
     const qp_pod_from = accounts.find((e) => e.id === qp_pod?.account_id);
-    ret["type"] = v.type as Type;
-    ret["dpPod"] = dp;
-    ret["dpPod"]["from"] = dp_from;
-    ret["dpPod"]["type"] = (pod ? "pod" : "qp") as DpContentType;
+    ret["dp"] = dp;
+    ret["dp"]["from"] = dp_from;
+    ret["dp"]["type"] = (pod ? "pod" : "qp") as DpContentType;
     if (pod) {
       // podは削除済み又は非公開で取得できないケースがある
       const fav = favs.find((e) => e.rp_id === pod.id);
-      ret["dpPod"]["pod"] = pod;
-      ret["dpPod"]["pod"]["favorited"] = fav ? true : false;
-      ret["dpPod"]["pod"]["mypod"] = pod_from.id === account.id ? true : false;
-      ret["dpPod"]["pod"]["from"] = pod_from;
+      ret["dp"]["pod"] = pod;
+      ret["dp"]["pod"]["favorited"] = fav ? true : false;
+      ret["dp"]["pod"]["mypod"] = pod_from.id === account.id ? true : false;
+      ret["dp"]["pod"]["from"] = pod_from;
     }
     if (qp_pod) {
       const fav = favs.find((e) => e.rp_id === qp_pod.id);
-      ret["dpPod"]["qp"] = qp_pod;
-      ret["dpPod"]["qp"]["favorited"] = fav ? true : false;
-      ret["dpPod"]["qp"]["mypod"] = qp_pod_from.id === account.id ? true : false;
-      ret["dpPod"]["qp"]["from"] = qp_pod_from;
+      ret["dp"]["qp"] = qp_pod;
+      ret["dp"]["qp"]["favorited"] = fav ? true : false;
+      ret["dp"]["qp"]["mypod"] = qp_pod_from.id === account.id ? true : false;
+      ret["dp"]["qp"]["from"] = qp_pod_from;
     }
     return ret as HomeTimeline;
   }
@@ -267,7 +267,6 @@ export class Mixer {
     const pod = pods.find((e) => e.id === v.id);
     const pod_from = accounts.find((e) => e.id === pod.account_id);
     const fav = favs.find((e) => e.rp_id === pod.id);
-    ret["type"] = v.type as Type;
     ret["pod"] = pod;
     ret["pod"]["favorited"] = fav ? true : false;
     ret["pod"]["mypod"] = pod_from.id === account.id ? true : false;

@@ -3,7 +3,8 @@ import { SessionValidater, accountValidator } from "../auth/gql.strategy";
 import { Logger } from "@nestjs/common";
 import { ResultObject } from "../result/result.model";
 import { DBService } from "../db/db.service";
-import { Type } from "../timeline/htl.model";
+import { DpContentType, QpContentType } from "@prisma/client";
+type ContentType = DpContentType | QpContentType;
 
 @Resolver()
 export class FavoriteResolver {
@@ -15,7 +16,7 @@ export class FavoriteResolver {
   async postFavorite(
     @SessionValidater() ctx,
     @Args("rp_id", { type: () => String }) rp_id: string,
-    @Args("type", { type: () => String }) type: Type
+    @Args("type", { type: () => String }) type: ContentType
   ) {
     const res = new ResultObject();
     const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
@@ -68,7 +69,7 @@ export class FavoriteResolver {
   async undoFavorite(
     @SessionValidater() ctx,
     @Args("rp_id", { type: () => String }) rp_id: string,
-    @Args("type", { type: () => String }) type: Type
+    @Args("type", { type: () => String }) type: ContentType
   ) {
     const res = new ResultObject();
     const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);

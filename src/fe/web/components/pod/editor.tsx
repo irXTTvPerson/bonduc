@@ -2,11 +2,11 @@ import type { NextPage } from "next"
 import { SetStateAction, useState, Dispatch } from "react"
 import styles from "../../styles/PodEditor.module.css"
 import { GqlClient } from "../../components/common/gql"
-import { PodVisibility, Pod, Type } from "../../@types/pod"
-import Image from "next/image"
-import { toIconFromVisibility, toDateString } from "../timeline/htl"
-import pod_style from "../../styles/HTL.module.css"
-import { ResultObject } from "../../@types/result"
+import { PodVisibility, Pod, BTLPod, BTLQpPod, QpPod, ContentType } from "../../@types/pod"
+import PodElement from "../timeline/ui/pod/pod"
+import { queryQp } from "../timeline/query/qp"
+import { queryPod } from "../timeline/query/pod"
+import { convertPodToBTLPod, convertQpPodToBTLQpPod } from "../timeline/control/initializer"
 
 type Context = {
   props: Props
@@ -23,105 +23,68 @@ type Context = {
   }
 }
 
+type OnSuccess = (p: BTLQpPod | BTLPod) => void
+
 export type Props = {
   isQp: boolean
-  rp_type?: Type
-  pod?: Pod
-  onPostSuccess?: () => void
+  rp_type?: ContentType
+  pod?: BTLPod
+  onPostSuccess?: OnSuccess
   onPostFail?: () => void
 }
 
-const query = `
-mutation ($body: String!, $v: PodVisibility!, $p: String) {
-  createPod(
-    body: $body
-    visibility: $v
-    password: $p
-  ) {
-    value
-  }
-}
-`
-
-const queryQp = `
-mutation ($id: String!, $body: String!, $v: PodVisibility!, $type: String!) {
-  createQpPod(
-    rp_id: $id
-    type: $type
-    body: $body
-    visibility: $v
-  ) {
-    value
-  }
-}
-`
-
-const renderPod = (pod: Pod) => {
-  let body: JSX.Element
-  if (pod.visibility === "password") {
-    body = <span className={styles.dp_disp}>* パスワード制限がついています *</span>
-  } else if (pod.body.length > 70) {
-    body = <span>{`${pod.body.slice(0, 70)} . . .`}</span>
-  } else {
-    body = <span>{pod.body}</span>
-  }
-
-  return (
-    <span className={pod_style.pod_container}>
-      <Image src={pod.from.icon_uri} width={56} height={56} alt="icon" />
-      <span className={pod_style.pod_right_container}>
-        <span className={pod_style.pod_right_container_flex_box}>
-          <span
-            className={`${pod_style.account_info_name} ${
-              pod.mypod ? pod_style.account_info_thisis_me : ""
-            }`}
-          >
-            {pod.from.screen_name}@{pod.from.identifier_name}
-          </span>
-          <span className={pod_style.account_info_timestamp}>
-            <span className={pod_style.visibility}>{toIconFromVisibility(pod.visibility)}</span>
-            {toDateString(pod.created_at)}
-          </span>
-        </span>
-        {body}
-      </span>
-    </span>
+const postPodViaQp = async (context: Context) => {
+  const gql = new GqlClient()
+  await gql.fetch(
+    {
+      id: context.props.pod?.id,
+      body: context.formData.body,
+      v: context.formData.visibility,
+      type: context.props.rp_type
+    },
+    queryQp
   )
+
+  const res = gql.res.createQpPod as QpPod | null
+  if (res) {
+    context.setMessage("post success")
+    const qp = convertQpPodToBTLQpPod(res) as BTLQpPod
+    if (context.props.onPostSuccess) context.props.onPostSuccess(qp)
+  } else {
+    context.setMessage("post failed")
+    if (context.props.onPostFail) context.props.onPostFail()
+  }
+}
+
+const postPodViaPod = async (context: Context) => {
+  const gql = new GqlClient()
+  await gql.fetch(
+    {
+      body: context.formData.body,
+      v: context.formData.visibility,
+      p: context.formData.password
+    },
+    queryPod
+  )
+
+  const res = gql.res.createPod as Pod | null
+  if (res) {
+    context.setMessage("post success")
+    const pod = convertPodToBTLPod(res) as BTLPod
+    if (context.props.onPostSuccess) context.props.onPostSuccess(pod)
+  } else {
+    context.setMessage("post failed")
+    if (context.props.onPostFail) context.props.onPostFail()
+  }
 }
 
 const postPod = (context: Context) => {
   ;(async () => {
     context.setMessage("podding...")
-    const gql = new GqlClient()
     if (context.props.isQp) {
-      await gql.fetch(
-        {
-          id: context.props.pod?.id,
-          body: context.formData.body,
-          v: context.formData.visibility,
-          type: context.props.rp_type
-        },
-        queryQp
-      )
+      await postPodViaQp(context)
     } else {
-      await gql.fetch(
-        {
-          body: context.formData.body,
-          v: context.formData.visibility,
-          p: context.formData.password
-        },
-        query
-      )
-    }
-    const res = context.props.isQp
-      ? (gql.res.createQpPod as ResultObject)
-      : (gql.res.createPod as ResultObject)
-    if (res.value) {
-      context.setMessage("post success")
-      if (context.props.onPostSuccess) context.props.onPostSuccess()
-    } else {
-      context.setMessage("post failed")
-      if (context.props.onPostFail) context.props.onPostFail()
+      await postPodViaPod(context)
     }
   })()
 }
@@ -164,7 +127,10 @@ const PodEditor: NextPage<Props> = (props: Props) => {
     <div className={styles.container}>
       {props.pod && props.isQp ? (
         <>
-          このpodをQPします :<span className={styles.disp_pod}>{renderPod(props.pod)}</span>
+          このpodをQPします :
+          <span className={styles.disp_pod}>
+            <PodElement pod={props.pod} onSuccess={() => {}} />
+          </span>
         </>
       ) : (
         <></>
