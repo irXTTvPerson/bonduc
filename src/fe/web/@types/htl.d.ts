@@ -1,11 +1,16 @@
 import { Account } from "./account"
-import { Pod, DpPod, QpPod } from "./pod"
+import { Pod, DpPod, QpPod, BTLPod, BTLDpPod, BTLQpPod } from "./pod"
 
-export type Type = "pod" | "dp" | "qp" | "err"
-
+// beとのインターフェース
 export type Timeline = {
-  type: Type
   pod?: Pod
-  dpPod?: DpPod
-  qpPod?: QpPod
+  dp?: DpPod
+  qp?: QpPod
+}
+
+// feで使うTimeline
+export type BTL = {
+  pod?: BTLPod
+  dp?: BTLDpPod
+  qp?: BTLQpPod
 }

@@ -11,6 +11,8 @@ import { NotificationResolver } from "./notification/notification.resolver";
 import { FollowResolver } from "./follow/follow.resolver";
 import { FavoriteResolver } from "./favorite/favorite.resolver";
 import { HTLResolver } from "./timeline/htl.resolver";
+import { DpResolver } from "./pod/dp.resolver";
+import { QpResolver } from "./pod/qp.resolver";
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { HTLResolver } from "./timeline/htl.resolver";
   ],
   providers: [
     PodResolver,
+    DpResolver,
+    QpResolver,
     AccountResolver,
     FollowRequestResolver,
     FollowResolver,

@@ -67,9 +67,6 @@ export class QpPod {
   // 無限に自己参照が続く可能性があるので1階層しか取得しない
   @Field(() => QpPod, { nullable: true })
   qp?: QpPod = null;
-
-  @Field(() => QpContentType)
-  type: QpContentType;
 }
 
 @ObjectType()
@@ -91,9 +88,6 @@ export class DpPod {
 
   @Field()
   visibility: PodVisibility = "global";
-
-  @Field(() => DpContentType)
-  type: DpContentType;
 }
 
 registerEnumType(PodVisibility, { name: "PodVisibility" });

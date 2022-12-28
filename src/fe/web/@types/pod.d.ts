@@ -13,7 +13,9 @@ export type PodVisibility =
   | "password"
   | "myself"
 
-export type Type = "pod" | "qp"
+export type QpContentType = "pod" | "qp"
+export type DpContentType = "pod" | "qp"
+export type ContentType = QpContentType | DpContentType
 
 export type Pod = {
   id: string
@@ -25,8 +27,6 @@ export type Pod = {
   favorited: boolean
   visibility: PodVisibility
   mypod: boolean
-  password?: string
-  decrypted?: boolean
 }
 
 export type DpPod = {
@@ -36,7 +36,6 @@ export type DpPod = {
   pod?: Pod
   qp?: QpPod
   visibility: PodVisibility
-  type: Type
 }
 
 export type QpPod = {
@@ -51,5 +50,26 @@ export type QpPod = {
   mypod: boolean
   pod?: Pod
   qp?: QpPod
-  type: Type
+}
+
+export type BTLPod = Pod & {
+  context: {
+    decrypted: boolean
+  }
+}
+
+type DpPodInternal = Omit<DpPod, "pod" | "qp">
+
+export type BTLDpPod = DpPodInternal & {
+  pod?: BTLPod
+  qp?: BTLQpPod
+  context: {}
+}
+
+type QpPodInternal = Omit<QpPod, "pod" | "qp">
+
+export type BTLQpPod = QpPodInternal & {
+  pod?: BTLPod
+  qp?: BTLQpPod
+  context: {}
 }
