@@ -10,7 +10,7 @@ import PodEditor from "../../../pod/editor"
 
 type Props = {
   pod: BTLPod
-  podType: ContentType
+  contentType: ContentType
   onSuccess: OnSuccess
   popup: Popup
 }
@@ -27,7 +27,15 @@ export const onUpdateRp = (pod: BTLPod | BTLQpPod) => {
 const postDp = (props: Props) => {
   ;(async () => {
     const gql = new GqlClient()
-    await gql.fetch({ id: props.pod.id, v: props.pod.visibility, type: props.podType }, queryPostDp)
+    await gql.fetch(
+      {
+        id: props.pod.id,
+        v: props.pod.visibility,
+        type: props.contentType,
+        timeline_type: props.pod.timeline_type
+      },
+      queryPostDp
+    )
     const res = gql.res.createDpPod as DpPod | null
     if (!res || gql.err) {
       console.error("failed to post DP")
@@ -45,7 +53,7 @@ const showEditor = (props: Props) => {
     <PodEditor
       pod={props.pod}
       isQp={true}
-      rp_type={props.podType}
+      contentType={props.contentType}
       onPostSuccess={(p) => {
         props.onSuccess(p, Reason.qp)
         props.popup.close()

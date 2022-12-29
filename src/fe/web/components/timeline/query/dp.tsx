@@ -4,6 +4,7 @@ export const queryDp = `
 {
   id
   created_at
+  timeline_type
   from {
     identifier_name
     screen_name
@@ -16,7 +17,7 @@ export const queryDp = `
 `
 
 export const queryPostDp = `
-mutation ($id: String!, $v: PodVisibility!, $type: String!) {
-  createDpPod(rp_id: $id, visibility: $v, type: $type) ${queryDp}
+mutation ($id: String!, $v: PodVisibility!, $type: String!, $timeline_type: TimelineType!) {
+  createDpPod(content_id: $id, visibility: $v, content_type: $type, timeline_type: $timeline_type) ${queryDp}
 }
 `

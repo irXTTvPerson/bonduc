@@ -1,6 +1,6 @@
 export const queryFav = `
 mutation ($id: String!, $type: String!) {
-  postFavorite(rp_id: $id, type: $type) {
+  postFavorite(content_id: $id, content_type: $type) {
     value
   }
 }
@@ -8,7 +8,7 @@ mutation ($id: String!, $type: String!) {
 
 export const queryUnFav = `
 mutation ($id: String!, $type: String!) {
-  undoFavorite(rp_id: $id, type: $type) {
+  undoFavorite(content_id: $id, content_type: $type) {
     value
   }
 }

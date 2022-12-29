@@ -15,43 +15,43 @@ export class FavoriteResolver {
   @Mutation(() => ResultObject)
   async postFavorite(
     @SessionValidater() ctx,
-    @Args("rp_id", { type: () => String }) rp_id: string,
-    @Args("type", { type: () => String }) type: ContentType
+    @Args("content_id", { type: () => String }) content_id: string,
+    @Args("content_type", { type: () => String }) content_type: ContentType
   ) {
     const res = new ResultObject();
     const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      if (type === "pod") {
+      if (content_type === "pod") {
         const pod = await this.dbService.prisma.pod.findUnique({
           select: { favorite_count: true },
-          where: { id: rp_id }
+          where: { id: content_id }
         });
         await this.dbService.prisma.$transaction([
           this.dbService.prisma.favorite.create({
             data: {
-              rp_id: rp_id,
+              content_id: content_id,
               account_id: account.id
             }
           }),
           this.dbService.prisma.pod.update({
-            where: { id: rp_id },
+            where: { id: content_id },
             data: { favorite_count: pod.favorite_count + 1 }
           })
         ]);
-      } else if (type === "qp") {
+      } else if (content_type === "qp") {
         const pod = await this.dbService.prisma.qpPod.findUnique({
           select: { favorite_count: true },
-          where: { id: rp_id }
+          where: { id: content_id }
         });
         await this.dbService.prisma.$transaction([
           this.dbService.prisma.favorite.create({
             data: {
-              rp_id: rp_id,
+              content_id: content_id,
               account_id: account.id
             }
           }),
           this.dbService.prisma.qpPod.update({
-            where: { id: rp_id },
+            where: { id: content_id },
             data: { favorite_count: pod.favorite_count + 1 }
           })
         ]);
@@ -68,47 +68,47 @@ export class FavoriteResolver {
   @Mutation(() => ResultObject)
   async undoFavorite(
     @SessionValidater() ctx,
-    @Args("rp_id", { type: () => String }) rp_id: string,
-    @Args("type", { type: () => String }) type: ContentType
+    @Args("content_id", { type: () => String }) content_id: string,
+    @Args("content_type", { type: () => String }) content_type: ContentType
   ) {
     const res = new ResultObject();
     const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      if (type === "pod") {
+      if (content_type === "pod") {
         const pod = await this.dbService.prisma.pod.findUnique({
           select: { favorite_count: true },
-          where: { id: rp_id }
+          where: { id: content_id }
         });
         await this.dbService.prisma.$transaction([
           this.dbService.prisma.favorite.delete({
             where: {
-              rp_id_account_id: {
-                rp_id: rp_id,
+              content_id_account_id: {
+                content_id: content_id,
                 account_id: account.id
               }
             }
           }),
           this.dbService.prisma.pod.update({
-            where: { id: rp_id },
+            where: { id: content_id },
             data: { favorite_count: pod.favorite_count - 1 }
           })
         ]);
-      } else if (type === "qp") {
+      } else if (content_type === "qp") {
         const pod = await this.dbService.prisma.qpPod.findUnique({
           select: { favorite_count: true },
-          where: { id: rp_id }
+          where: { id: content_id }
         });
         await this.dbService.prisma.$transaction([
           this.dbService.prisma.favorite.delete({
             where: {
-              rp_id_account_id: {
-                rp_id: rp_id,
+              content_id_account_id: {
+                content_id: content_id,
                 account_id: account.id
               }
             }
           }),
           this.dbService.prisma.qpPod.update({
-            where: { id: rp_id },
+            where: { id: content_id },
             data: { favorite_count: pod.favorite_count - 1 }
           })
         ]);

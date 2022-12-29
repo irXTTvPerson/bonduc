@@ -1,5 +1,5 @@
 import type { NextPage } from "next"
-import { BTLPod, PodVisibility } from "../../../../@types/pod"
+import { BTLPod, PodVisibility, TimelineType } from "../../../../@types/pod"
 import styles from "../../../../styles/HTL.module.css"
 import Link from "next/link"
 import Image from "next/image"
@@ -24,14 +24,23 @@ const toIconFromVisibility = (v: PodVisibility) => {
   switch (v) {
     case "anyone":
       return <>⭕</>
-    case "global":
-      return <>🌐</>
-    case "local":
-      return <>🌏</>
     case "follower":
       return <>👨‍👩‍👧‍👦</>
-    case "password":
-      return <>🔐</>
+    case "login":
+      return <>🌏</>
+    default:
+      return <>㊙</>
+  }
+}
+
+const toIconFromTimelineType = (v: TimelineType) => {
+  switch (v) {
+    case "home":
+      return <>🏠</>
+    case "local":
+      return <>🏰</>
+    case "global":
+      return <>🌞</>
     default:
       return <>㊙</>
   }
@@ -59,7 +68,7 @@ const PodElement: NextPage<Props> = (props: Props) => {
   const show_form = pod.context.decrypted === false
 
   let body: JSX.Element
-  if (pod.visibility === "password" && show_form) {
+  if (pod.encrypted && show_form) {
     body = (
       <>
         <div>
@@ -92,7 +101,10 @@ const PodElement: NextPage<Props> = (props: Props) => {
             </Link>
           </span>
           <span className={styles.account_info_timestamp}>
-            <span className={styles.visibility}>{toIconFromVisibility(pod.visibility)}</span>
+            <span className={styles.visibility}>
+              {toIconFromVisibility(pod.visibility)}
+              {toIconFromTimelineType(pod.timeline_type)}
+            </span>
             <Link href={`/pod/${pod.id}`} target="_blank">
               {toDateString(pod.created_at)}
             </Link>

@@ -5,12 +5,9 @@ export const convertVisibilityTo = (visibility: PodVisibility, account: Account)
   switch (visibility) {
     default:
     case "login":
-    case "password": // パスワードつきpodはbonduc固有機能なので連合できない
-    case "local":
       to = ["https://www.w3.org/ns/activitystreams#Local"];
       break;
     case "anyone":
-    case "global":
       to = ["https://www.w3.org/ns/activitystreams#Public"];
       break;
     case "myself":
@@ -42,10 +39,7 @@ export const convertVisibilityCc = (visibility: PodVisibility, account: Account)
   let cc = [];
   switch (visibility) {
     case "login":
-    case "password":
-    case "local":
     case "anyone":
-    case "global":
     case "mention":
       cc = [account.follower_uri];
       break;

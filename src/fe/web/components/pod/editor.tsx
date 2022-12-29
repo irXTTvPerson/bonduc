@@ -2,7 +2,15 @@ import type { NextPage } from "next"
 import { SetStateAction, useState, Dispatch } from "react"
 import styles from "../../styles/PodEditor.module.css"
 import { GqlClient } from "../../components/common/gql"
-import { PodVisibility, Pod, BTLPod, BTLQpPod, QpPod, ContentType } from "../../@types/pod"
+import {
+  PodVisibility,
+  Pod,
+  BTLPod,
+  BTLQpPod,
+  QpPod,
+  ContentType,
+  TimelineType
+} from "../../@types/pod"
 import PodElement from "../timeline/ui/pod/pod"
 import { queryQp } from "../timeline/query/qp"
 import { queryPod } from "../timeline/query/pod"
@@ -14,12 +22,14 @@ type Context = {
   setPassword: Dispatch<SetStateAction<string>>
   setMessage: Dispatch<SetStateAction<string>>
   setVisibility: Dispatch<SetStateAction<PodVisibility>>
+  setTimelineType: Dispatch<SetStateAction<TimelineType>>
   setBody: Dispatch<SetStateAction<string>>
 
   formData: {
     body: string
     visibility: PodVisibility
     password: string
+    timelineType: TimelineType
   }
 }
 
@@ -27,7 +37,7 @@ type OnSuccess = (p: BTLQpPod | BTLPod) => void
 
 export type Props = {
   isQp: boolean
-  rp_type?: ContentType
+  contentType?: ContentType
   pod?: BTLPod
   onPostSuccess?: OnSuccess
   onPostFail?: () => void
@@ -40,7 +50,8 @@ const postPodViaQp = async (context: Context) => {
       id: context.props.pod?.id,
       body: context.formData.body,
       v: context.formData.visibility,
-      type: context.props.rp_type
+      type: context.props.contentType,
+      timeline_type: context.formData.timelineType
     },
     queryQp
   )
@@ -62,6 +73,7 @@ const postPodViaPod = async (context: Context) => {
     {
       body: context.formData.body,
       v: context.formData.visibility,
+      timeline_type: context.formData.timelineType,
       p: context.formData.password
     },
     queryPod
@@ -106,7 +118,8 @@ const PodEditor: NextPage<Props> = (props: Props) => {
   const [message, setMessage] = useState("")
   const [password, setPassword] = useState("")
   const [body, setBody] = useState("")
-  const [visibility, setVisibility] = useState<PodVisibility>("global")
+  const [visibility, setVisibility] = useState<PodVisibility>("login")
+  const [timelineType, setTimelineType] = useState<TimelineType>("global")
   const [passwordForm, setPasswordForm] = useState<JSX.Element>(<></>)
 
   const context: Context = {
@@ -115,11 +128,13 @@ const PodEditor: NextPage<Props> = (props: Props) => {
     setPassword: setPassword,
     setMessage: setMessage,
     setVisibility: setVisibility,
+    setTimelineType: setTimelineType,
     setBody: setBody,
     formData: {
       body: body,
       visibility: visibility,
-      password: password
+      password: password,
+      timelineType: timelineType
     }
   }
 
@@ -143,24 +158,38 @@ const PodEditor: NextPage<Props> = (props: Props) => {
       </div>
       公開範囲:
       <select
-        defaultValue={"global"}
-        onChange={(e) => {
-          context.setVisibility(e.target.value as PodVisibility)
-          renderPasswordForm(context, e.target.value === "password")
-        }}
+        defaultValue={"login"}
+        onChange={(e) => context.setVisibility(e.target.value as PodVisibility)}
       >
         <option value={"anyone"}>誰でも</option>
         <option value={"login"}>ログインユーザー</option>
-        <option value={"global"}>連合</option>
-        <option value={"local"}>ローカル</option>
-        <option value={"following"}>フォローしてる人</option>
+        {/* <option value={"following"}>フォローしてる人</option> */}
         <option value={"follower"}>フォロワー</option>
-        <option value={"mutual"}>相互</option>
-        <option value={"mention"}>メンションした人</option>
-        <option value={"list"}>リストに入ってる人</option>
-        <option value={"password"}>パスワード公開</option>
-        <option value={"myself"}>自分のみ</option>
+        {/* <option value={"mutual"}>相互</option> */}
+        {/* <option value={"mention"}>メンションした人</option> */}
+        {/* <option value={"list"}>リストに入ってる人</option> */}
+        {/* <option value={"myself"}>自分のみ</option> */}
       </select>
+      投稿先:
+      <select
+        defaultValue={"global"}
+        onChange={(e) => context.setTimelineType(e.target.value as TimelineType)}
+      >
+        <option value={"home"}>ホーム</option>
+        <option value={"local"}>ローカル</option>
+        <option value={"global"}>グローバル</option>
+      </select>
+      {props.isQp === false ? (
+        <>
+          🔐
+          <input
+            type={"checkbox"}
+            onChange={(e) => renderPasswordForm(context, e.target.checked)}
+          />
+        </>
+      ) : (
+        <></>
+      )}
       {passwordForm}
       <div>
         <button onClick={() => postPod(context)}>pod</button>

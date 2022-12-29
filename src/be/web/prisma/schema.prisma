@@ -56,15 +56,18 @@ model Account {
 enum PodVisibility {
   anyone
   login // loggedin account only
-  global // global timeline only
-  local // local timeline only
   following
   follower
   mutual // mutual following account only
   mention // mentioned account only
   list // listed in account only
-  password // password authenticated account only
   myself // just myself only
+}
+
+enum TimelineType {
+  home
+  local
+  global
 }
 
 enum DpContentType {
@@ -88,22 +91,24 @@ model Pod {
   body           String
   favorite_count Int           @default(0)
   rp_count       Int           @default(0)
-  visibility     PodVisibility @default(global)
+  visibility     PodVisibility @default(login)
   password       Json?
+  timeline_type  TimelineType  @default(global)
 }
 
 model DpPod {
-  id         String        @id @unique @default(dbgenerated("gen_random_uuid()"))
-  created_at DateTime      @default(now())
-  to         String[]
-  cc         String[]
-  from       Account       @relation(fields: [account_id], references: [id])
-  account_id String
-  visibility PodVisibility @default(global)
-  rp_id      String // podかqpのid
-  rp_type    DpContentType
+  id            String        @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at    DateTime      @default(now())
+  to            String[]
+  cc            String[]
+  from          Account       @relation(fields: [account_id], references: [id])
+  account_id    String
+  visibility    PodVisibility @default(login)
+  content_id    String // podかqpのid
+  content_type  DpContentType
+  timeline_type TimelineType  @default(global)
 
-  @@unique([account_id, rp_id, rp_type])
+  @@unique([account_id, content_id, content_type])
 }
 
 model QpPod {
@@ -117,11 +122,12 @@ model QpPod {
   body           String
   favorite_count Int           @default(0)
   rp_count       Int           @default(0)
-  visibility     PodVisibility @default(global)
-  rp_id          String // podかqpのid
-  rp_type        QpContentType
+  visibility     PodVisibility @default(login)
+  content_id     String // podかqpのid
+  content_type   QpContentType
+  timeline_type  TimelineType  @default(global)
 
-  @@unique([account_id, rp_id, rp_type])
+  @@unique([account_id, content_id, content_type])
 }
 
 enum NotifyType {
@@ -184,8 +190,8 @@ model Follow {
 model Favorite {
   created_at DateTime @default(now())
   from       Account  @relation(fields: [account_id], references: [id])
-  rp_id      String // podかqpのid
+  content_id String // podかqpのid
   account_id String
 
-  @@unique([rp_id, account_id])
+  @@unique([content_id, account_id])
 }

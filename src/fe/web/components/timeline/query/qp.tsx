@@ -1,14 +1,14 @@
 import { podContent, qpPodContent } from "./home"
 
 export const queryQp = `
-mutation ($id: String!, $body: String!, $v: PodVisibility!, $type: String!) {
+mutation ($id: String!, $body: String!, $v: PodVisibility!, $type: String!, $timeline_type: TimelineType!) {
   createQpPod(
-    rp_id: $id
-    type: $type
+    content_id: $id
+    content_type: $type
     body: $body
     visibility: $v
+    timeline_type: $timeline_type
   ) {
-
     id
     created_at
     body
@@ -17,6 +17,7 @@ mutation ($id: String!, $body: String!, $v: PodVisibility!, $type: String!) {
     rp_count
     visibility
     mypod
+    timeline_type
     from {
       identifier_name
       screen_name
