@@ -1,7 +1,7 @@
 import { Resolver, Args, Mutation, Query } from "@nestjs/graphql";
 import { Pod } from "./pod.model";
 import { SessionValidater, accountValidator } from "../auth/gql.strategy";
-import { Account, PodVisibility } from "@prisma/client";
+import { Account, PodVisibility, Pod as PrismaPod, TimelineType } from "@prisma/client";
 import { Logger } from "@nestjs/common";
 import { ResultObject } from "../result/result.model";
 import { DBService } from "../db/db.service";
@@ -15,7 +15,12 @@ export class PodResolver {
 
   constructor(private readonly dbService: DBService) {}
 
-  private async createPodImpl(body: string, visibility: PodVisibility, account: Account) {
+  private async createPodImpl(
+    body: string,
+    visibility: PodVisibility,
+    account: Account,
+    timeline_type: TimelineType
+  ) {
     const count = await this.dbService.prisma.account.findUnique({
       where: { id: account.id },
       select: { pod_count: true }
@@ -27,7 +32,8 @@ export class PodResolver {
           to: convertVisibilityTo(visibility, account),
           cc: convertVisibilityCc(visibility, account),
           body: body,
-          visibility: visibility
+          visibility: visibility,
+          timeline_type: timeline_type
         },
         include: { from: true }
       }),
@@ -44,24 +50,28 @@ export class PodResolver {
     @SessionValidater() ctx,
     @Args("body", { type: () => String }) body: string,
     @Args("visibility", { type: () => PodVisibility }) visibility: PodVisibility,
+    @Args("timeline_type", { type: () => TimelineType }) timeline_type: TimelineType,
     @Args("password", { type: () => String, nullable: true }) password?: string
   ) {
     const me = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      let result;
-      switch (visibility) {
-        case "password":
-          if (!password) throw new Error("password is needed");
-          result = await this.createPodImplWithPassword(body, password, me);
-          break;
-        default:
-          result = await this.createPodImpl(body, visibility, me);
-          break;
+      let result: { pod: PrismaPod & { from: Account }; account: Account };
+      if (password) {
+        result = await this.createPodImplWithPassword(
+          body,
+          password,
+          me,
+          visibility,
+          timeline_type
+        );
+      } else {
+        result = await this.createPodImpl(body, visibility, me, timeline_type);
       }
       const session_me = await this.dbService.redis.get(`account/${me.id}`);
       await this.dbService.redis.set(`session/${session_me}`, JSON.stringify(result.account));
       result.pod["favorited"] = false;
       result.pod["mypod"] = true;
+      result.pod["encrypted"] = password ? true : false;
       return result.pod;
     } catch (e) {
       this.logger.error(e);
@@ -69,9 +79,13 @@ export class PodResolver {
     return null;
   }
 
-  private async createPodImplWithPassword(body: string, password: string, account: Account) {
-    const visibility: PodVisibility = "password";
-
+  private async createPodImplWithPassword(
+    body: string,
+    password: string,
+    account: Account,
+    visibility: PodVisibility,
+    timeline_type: TimelineType
+  ) {
     const iv = randomBytes(12);
     const algo = "aes-256-ccm";
     const key = randomBytes(32);
@@ -101,7 +115,8 @@ export class PodResolver {
           cc: convertVisibilityCc(visibility, account),
           body: encrypted_body,
           visibility: visibility,
-          password: password_info
+          password: password_info,
+          timeline_type: timeline_type
         },
         include: { from: true }
       }),

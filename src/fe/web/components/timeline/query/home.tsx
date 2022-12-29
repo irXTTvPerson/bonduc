@@ -7,7 +7,9 @@ export const podContent = `
   favorite_count
   rp_count
   visibility
+  timeline_type
   mypod
+  encrypted
   from {
     identifier_name
     screen_name
@@ -27,6 +29,7 @@ export const qpPodContent = `
   rp_count
   visibility
   mypod
+  timeline_type
   from {
     identifier_name
     screen_name
@@ -43,6 +46,7 @@ export const queryHome = `
     dp {
       id
       created_at
+      timeline_type
       from {
         identifier_name
         screen_name
@@ -61,6 +65,7 @@ export const queryHome = `
       rp_count
       visibility
       mypod
+      timeline_type
       from {
         identifier_name
         screen_name

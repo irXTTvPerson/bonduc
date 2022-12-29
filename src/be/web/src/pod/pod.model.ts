@@ -1,6 +1,6 @@
 import { Field, ObjectType, registerEnumType, Int } from "@nestjs/graphql";
 import { Account } from "../account/account.model";
-import { PodVisibility, QpContentType, DpContentType } from "@prisma/client";
+import { PodVisibility, QpContentType, DpContentType, TimelineType } from "@prisma/client";
 
 @ObjectType()
 export class Pod {
@@ -26,10 +26,16 @@ export class Pod {
   favorited: boolean = false;
 
   @Field()
-  visibility: PodVisibility = "global";
+  visibility: PodVisibility = "login";
 
   @Field()
   mypod: boolean = false;
+
+  @Field(() => TimelineType)
+  timeline_type: TimelineType = "home";
+
+  @Field()
+  encrypted: boolean = false;
 }
 
 @ObjectType()
@@ -56,10 +62,13 @@ export class QpPod {
   favorited: boolean = false;
 
   @Field()
-  visibility: PodVisibility = "global";
+  visibility: PodVisibility = "login";
 
   @Field()
   mypod: boolean = false;
+
+  @Field(() => TimelineType)
+  timeline_type: TimelineType = "home";
 
   @Field(() => Pod, { nullable: true })
   pod?: Pod = null;
@@ -87,9 +96,13 @@ export class DpPod {
   qp?: QpPod = null;
 
   @Field()
-  visibility: PodVisibility = "global";
+  visibility: PodVisibility = "login";
+
+  @Field(() => TimelineType)
+  timeline_type: TimelineType = "home";
 }
 
 registerEnumType(PodVisibility, { name: "PodVisibility" });
 registerEnumType(DpContentType, { name: "DpContentType" });
 registerEnumType(QpContentType, { name: "QpContentType" });
+registerEnumType(TimelineType, { name: "TimelineType" });

@@ -3,19 +3,18 @@ import { Account } from "./account"
 export type PodVisibility =
   | "anyone"
   | "login"
-  | "global"
-  | "local"
   | "following"
   | "follower"
   | "mutual"
   | "mention"
   | "list"
-  | "password"
   | "myself"
 
 export type QpContentType = "pod" | "qp"
 export type DpContentType = "pod" | "qp"
 export type ContentType = QpContentType | DpContentType
+
+export type TimelineType = "home" | "local" | "global"
 
 export type Pod = {
   id: string
@@ -27,6 +26,8 @@ export type Pod = {
   favorited: boolean
   visibility: PodVisibility
   mypod: boolean
+  timeline_type: TimelineType
+  encrypted: boolean
 }
 
 export type DpPod = {
@@ -36,6 +37,7 @@ export type DpPod = {
   pod?: Pod
   qp?: QpPod
   visibility: PodVisibility
+  timeline_type: TimelineType
 }
 
 export type QpPod = {
@@ -48,6 +50,7 @@ export type QpPod = {
   favorited: boolean
   visibility: PodVisibility
   mypod: boolean
+  timeline_type: TimelineType
   pod?: Pod
   qp?: QpPod
 }

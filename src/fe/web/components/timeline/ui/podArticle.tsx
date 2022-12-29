@@ -16,21 +16,21 @@ type Props = {
 
 export const renderPod = (
   pod: BTLPod,
-  podType: ContentType,
+  contentType: ContentType,
   onSuccess: OnSuccess,
   popup: Popup
 ) => {
   return (
     <>
       <PodElement pod={pod} onSuccess={onSuccess} />
-      {renderFooterButton(pod, podType, onSuccess, popup)}
+      {renderFooterButton(pod, contentType, onSuccess, popup)}
     </>
   )
 }
 
 export const renderFooterButton = (
   pod: BTLPod,
-  podType: ContentType,
+  contentType: ContentType,
   onSuccess: OnSuccess,
   popup: Popup
 ) => {
@@ -38,8 +38,8 @@ export const renderFooterButton = (
     <>
       <span className={styles.article_container_flex_box}>
         <ReplyElement />
-        <RpElement pod={pod} podType={podType} onSuccess={onSuccess} popup={popup} />
-        <FavElement pod={pod} podType={podType} onSuccess={onSuccess} />
+        <RpElement pod={pod} contentType={contentType} onSuccess={onSuccess} popup={popup} />
+        <FavElement pod={pod} contentType={contentType} onSuccess={onSuccess} />
       </span>
     </>
   )

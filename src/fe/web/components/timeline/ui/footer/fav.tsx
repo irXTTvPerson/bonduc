@@ -8,7 +8,7 @@ import { OnSuccess, Reason } from "../../control/initializer"
 
 type Props = {
   pod: BTLPod
-  podType: ContentType
+  contentType: ContentType
   onSuccess: OnSuccess
 }
 
@@ -49,9 +49,9 @@ const FavElement: NextPage<Props> = (props: Props) => {
     <span className={styles.article_container_footer_button}>
       <span className={styles.cursor}>
         {props.pod.favorited ? (
-          <span onClick={() => unFav(props.pod, props.podType, props.onSuccess)}>✨</span>
+          <span onClick={() => unFav(props.pod, props.contentType, props.onSuccess)}>✨</span>
         ) : (
-          <span onClick={() => fav(props.pod, props.podType, props.onSuccess)}>☆</span>
+          <span onClick={() => fav(props.pod, props.contentType, props.onSuccess)}>☆</span>
         )}
       </span>
       <span className={styles.counter}>

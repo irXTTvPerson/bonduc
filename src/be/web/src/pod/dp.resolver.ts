@@ -1,7 +1,7 @@
 import { Resolver, Args, Mutation } from "@nestjs/graphql";
 import { DpPod } from "./pod.model";
 import { SessionValidater, accountValidator } from "../auth/gql.strategy";
-import { Account, PodVisibility, DpContentType } from "@prisma/client";
+import { Account, PodVisibility, DpContentType, TimelineType } from "@prisma/client";
 import { Logger } from "@nestjs/common";
 import { DBService } from "../db/db.service";
 import { convertVisibilityCc, convertVisibilityTo } from "./address.converter";
@@ -14,15 +14,18 @@ export class DpResolver {
 
   private async createDpPodImpl(
     account: Account,
-    rp_id: string,
+    content_id: string,
     visibility: PodVisibility,
-    type: DpContentType
+    content_type: DpContentType,
+    timeline_type: TimelineType
   ) {
-    const pool: any = type === "pod" ? this.dbService.pool[0].pod : this.dbService.pool[0].qpPod;
-    const prisma: any = type === "pod" ? this.dbService.prisma.pod : this.dbService.prisma.qpPod;
+    const pool: any =
+      content_type === "pod" ? this.dbService.pool[0].pod : this.dbService.pool[0].qpPod;
+    const prisma: any =
+      content_type === "pod" ? this.dbService.prisma.pod : this.dbService.prisma.qpPod;
     const [pod, count, fav] = await Promise.all([
       pool.findUnique({
-        where: { id: rp_id },
+        where: { id: content_id },
         include: { from: true }
       }),
       this.dbService.pool[1].account.findUnique({
@@ -31,8 +34,8 @@ export class DpResolver {
       }),
       this.dbService.pool[2].favorite.findUnique({
         where: {
-          rp_id_account_id: {
-            rp_id: rp_id,
+          content_id_account_id: {
+            content_id: content_id,
             account_id: account.id
           }
         }
@@ -44,9 +47,10 @@ export class DpResolver {
           account_id: account.id,
           to: convertVisibilityTo(visibility, account),
           cc: convertVisibilityCc(visibility, account),
-          rp_id: rp_id,
-          rp_type: type as DpContentType,
-          visibility: visibility
+          content_id: content_id,
+          content_type: content_type as DpContentType,
+          visibility: visibility,
+          timeline_type: timeline_type
         },
         include: { from: true }
       }),
@@ -55,14 +59,15 @@ export class DpResolver {
         data: { pod_count: count.pod_count + 1, last_pod_at: new Date() }
       }),
       prisma.update({
-        where: { id: rp_id },
+        where: { id: content_id },
         data: { rp_count: pod.rp_count + 1 }
       })
     ]);
-    if (type === "pod") {
+    if (content_type === "pod") {
       result[0]["pod"] = pod;
       result[0]["pod"]["mypod"] = pod.from.id === account.id;
       result[0]["pod"]["favorited"] = fav ? true : false;
+      result[0]["pod"]["encrypted"] = pod.password === null ? false : true;
     } else {
       result[0]["qp"] = pod;
       result[0]["qp"]["mypod"] = pod.from.id === account.id;
@@ -74,13 +79,20 @@ export class DpResolver {
   @Mutation(() => DpPod, { nullable: true })
   async createDpPod(
     @SessionValidater() ctx,
-    @Args("rp_id", { type: () => String }) rp_id: string,
+    @Args("content_id", { type: () => String }) content_id: string,
     @Args("visibility", { type: () => PodVisibility }) visibility: PodVisibility,
-    @Args("type", { type: () => String }) type: DpContentType
+    @Args("content_type", { type: () => String }) content_type: DpContentType,
+    @Args("timeline_type", { type: () => TimelineType }) timeline_type: TimelineType
   ) {
     const me = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      const { dpPod, account } = await this.createDpPodImpl(me, rp_id, visibility, type);
+      const { dpPod, account } = await this.createDpPodImpl(
+        me,
+        content_id,
+        visibility,
+        content_type,
+        timeline_type
+      );
       const session_me = await this.dbService.redis.get(`account/${account.id}`);
       await this.dbService.redis.set(`session/${session_me}`, JSON.stringify(account));
       return dpPod;

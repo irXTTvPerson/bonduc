@@ -9,16 +9,16 @@ type TimelineCommonBase = {
   id: string;
   account_id: string;
   created_at: Date;
-  rp_id: string | null;
-  rp_type: QpContentType | DpContentType | null;
+  content_id: string | null;
+  content_type: QpContentType | DpContentType | null;
   type: PodType;
 };
 
-const defaultVisibility = `visibility in ('anyone'::"PodVisibility", 'login'::"PodVisibility", 'global'::"PodVisibility", 'local'::"PodVisibility", 'follower'::"PodVisibility", 'password'::"PodVisibility")`;
+const defaultVisibility = `visibility in ('anyone'::"PodVisibility", 'login'::"PodVisibility", 'follower'::"PodVisibility")`;
 
 const query = (following_place_holder: string, limit: number) =>
   `select
-  id, account_id, created_at, NULL as rp_id, NULL as rp_type, 'pod' as type
+  id, account_id, created_at, NULL as content_id, NULL as content_type, 'pod' as type
 from
   "Pod" p 
 where 
@@ -27,7 +27,7 @@ where
     (${defaultVisibility})
 union all
   select
-    id, account_id, created_at, rp_id, cast(rp_type as text), 'dp' as type
+    id, account_id, created_at, content_id, cast(content_type as text), 'dp' as type
   from
     "DpPod" p 
   where 
@@ -36,7 +36,7 @@ union all
       (${defaultVisibility})
 union all
   select
-    id, account_id, created_at, rp_id, cast(rp_type as text), 'qp' as type
+    id, account_id, created_at, content_id, cast(content_type as text), 'qp' as type
   from
     "QpPod" p
   where
@@ -98,7 +98,7 @@ export class Mixer {
       ...new Set([
         ...timeline.map((v) => (v.type === "qp" ? v.id : undefined)).filter((v) => v !== undefined),
         ...timeline
-          .map((v) => (v?.rp_type === "qp" ? v?.rp_id : undefined))
+          .map((v) => (v?.content_type === "qp" ? v?.content_id : undefined))
           .filter((v) => v !== undefined)
       ])
     ];
@@ -120,7 +120,7 @@ export class Mixer {
           .map((v) => (v.type === "pod" ? v.id : undefined))
           .filter((v) => v !== undefined),
         ...timeline
-          .map((v) => (v?.rp_type === "pod" ? v?.rp_id : undefined))
+          .map((v) => (v?.content_type === "pod" ? v?.content_id : undefined))
           .filter((v) => v !== undefined)
       ])
     ];
@@ -143,17 +143,19 @@ export class Mixer {
           .map((v) => (v.type === "pod" || v.type === "qp" ? v.id : undefined))
           .filter((v) => v !== undefined),
         ...timeline
-          .map((v) => (v?.rp_type === "pod" || v?.rp_type === "qp" ? v?.rp_id : undefined))
+          .map((v) =>
+            v?.content_type === "pod" || v?.content_type === "qp" ? v?.content_id : undefined
+          )
           .filter((v) => v !== undefined)
       ])
     ];
 
     const pod_place_holder = this.gen_place_holder(pod_list.length);
-    let favs: { rp_id: string }[] = [];
+    let favs: { content_id: string }[] = [];
 
     if (pod_list.length > 0) {
       favs = await this.dbSerVice.pool[3].$queryRawUnsafe(
-        `select rp_id from "Favorite" f where rp_id in (${pod_place_holder}) and account_id='${account.id}'`,
+        `select content_id from "Favorite" f where content_id in (${pod_place_holder}) and account_id='${account.id}'`,
         ...pod_list
       );
     }
@@ -186,15 +188,15 @@ export class Mixer {
     qp_pods: QpPod[],
     accounts: Account[],
     account: Account,
-    favs: { rp_id: string }[]
+    favs: { content_id: string }[]
   ) {
     const ret = {};
     const qp = qp_pods.find((e) => e.id === v.id);
     const qp_from = accounts.find((e) => e.id === v.account_id);
-    const qp_fav = favs.find((e) => e.rp_id === qp.id);
-    const pod = pods.find((e) => e.id === qp.rp_id);
+    const qp_fav = favs.find((e) => e.content_id === qp.id);
+    const pod = pods.find((e) => e.id === qp.content_id);
     const pod_from = accounts.find((e) => e.id === pod?.account_id);
-    const qp_pod = qp_pods.find((e) => e.id === qp.rp_id);
+    const qp_pod = qp_pods.find((e) => e.id === qp.content_id);
     const qp_pod_from = accounts.find((e) => e.id === qp_pod?.account_id);
     ret["qp"] = qp;
     ret["qp"]["favorited"] = qp_fav ? true : false;
@@ -203,14 +205,15 @@ export class Mixer {
     ret["qp"]["type"] = (pod ? "pod" : "qp") as QpContentType;
     if (pod) {
       // podは削除済み又は非公開で取得できないケースがある
-      const fav = favs.find((e) => e.rp_id === pod.id);
+      const fav = favs.find((e) => e.content_id === pod.id);
       ret["qp"]["pod"] = pod;
       ret["qp"]["pod"]["favorited"] = fav ? true : false;
       ret["qp"]["pod"]["mypod"] = pod_from.id === account.id ? true : false;
+      ret["qp"]["pod"]["encrypted"] = pod.password === null ? false : true;
       ret["qp"]["pod"]["from"] = pod_from;
     }
     if (qp_pod) {
-      const fav = favs.find((e) => e.rp_id === qp_pod.id);
+      const fav = favs.find((e) => e.content_id === qp_pod.id);
       ret["qp"]["qp"] = qp_pod;
       ret["qp"]["qp"]["favorited"] = fav ? true : false;
       ret["qp"]["qp"]["mypod"] = qp_pod_from.id === account.id ? true : false;
@@ -226,28 +229,29 @@ export class Mixer {
     qp_pods: QpPod[],
     accounts: Account[],
     account: Account,
-    favs: { rp_id: string }[]
+    favs: { content_id: string }[]
   ) {
     const ret = {};
     const dp = dp_pods.find((e) => e.id === v.id);
     const dp_from = accounts.find((e) => e.id === v.account_id);
-    const pod = pods.find((e) => e.id === dp.rp_id);
+    const pod = pods.find((e) => e.id === dp.content_id);
     const pod_from = accounts.find((e) => e.id === pod?.account_id);
-    const qp_pod = qp_pods.find((e) => e.id === dp.rp_id);
+    const qp_pod = qp_pods.find((e) => e.id === dp.content_id);
     const qp_pod_from = accounts.find((e) => e.id === qp_pod?.account_id);
     ret["dp"] = dp;
     ret["dp"]["from"] = dp_from;
     ret["dp"]["type"] = (pod ? "pod" : "qp") as DpContentType;
     if (pod) {
       // podは削除済み又は非公開で取得できないケースがある
-      const fav = favs.find((e) => e.rp_id === pod.id);
+      const fav = favs.find((e) => e.content_id === pod.id);
       ret["dp"]["pod"] = pod;
       ret["dp"]["pod"]["favorited"] = fav ? true : false;
       ret["dp"]["pod"]["mypod"] = pod_from.id === account.id ? true : false;
+      ret["dp"]["pod"]["encrypted"] = pod.password === null ? false : true;
       ret["dp"]["pod"]["from"] = pod_from;
     }
     if (qp_pod) {
-      const fav = favs.find((e) => e.rp_id === qp_pod.id);
+      const fav = favs.find((e) => e.content_id === qp_pod.id);
       ret["dp"]["qp"] = qp_pod;
       ret["dp"]["qp"]["favorited"] = fav ? true : false;
       ret["dp"]["qp"]["mypod"] = qp_pod_from.id === account.id ? true : false;
@@ -261,15 +265,16 @@ export class Mixer {
     pods: Pod[],
     accounts: Account[],
     account: Account,
-    favs: { rp_id: string }[]
+    favs: { content_id: string }[]
   ) {
     const ret = {};
     const pod = pods.find((e) => e.id === v.id);
     const pod_from = accounts.find((e) => e.id === pod.account_id);
-    const fav = favs.find((e) => e.rp_id === pod.id);
+    const fav = favs.find((e) => e.content_id === pod.id);
     ret["pod"] = pod;
     ret["pod"]["favorited"] = fav ? true : false;
     ret["pod"]["mypod"] = pod_from.id === account.id ? true : false;
+    ret["pod"]["encrypted"] = pod.password === null ? false : true;
     ret["pod"]["from"] = pod_from;
     return ret as HomeTimeline;
   }
@@ -281,7 +286,7 @@ export class Mixer {
     qp_pods: QpPod[],
     accounts: Account[],
     account: Account,
-    favs: { rp_id: string }[]
+    favs: { content_id: string }[]
   ) {
     const result: HomeTimeline[] = timeline.map((v) => {
       switch (v.type) {
