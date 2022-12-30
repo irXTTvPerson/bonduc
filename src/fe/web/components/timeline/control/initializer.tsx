@@ -36,7 +36,7 @@ const fetch = async (query: string, onError: () => void) => {
   } else return gql.res.getHTL as Timeline[]
 }
 
-const buildUI = (e: BTL, onSuccess: OnSuccess, popup: Popup, index: number) => {
+export const buildUI = (e: BTL, onSuccess: OnSuccess, popup: Popup, index: number) => {
   if (e.pod)
     return <PodArticle pod={e.pod as BTLPod} onSuccess={onSuccess} popup={popup} key={index} />
   else if (e.dp)
@@ -132,7 +132,7 @@ const convertQpPodToBTL = (qp: QpPod) => {
   return ret
 }
 
-const convert = (t: Timeline[]): BTL[] => {
+export const convert = (t: Timeline[]): BTL[] => {
   return t.map((e) => {
     if (e.pod) {
       const ret: BTL = {

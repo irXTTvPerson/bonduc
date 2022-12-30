@@ -8,6 +8,7 @@ import { DBService } from "../db/db.service";
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { hash } from "../lib/hash";
 import { convertVisibilityCc, convertVisibilityTo } from "./address.converter";
+import { HomeTimeline } from "../timeline/htl.model";
 
 @Resolver(Pod)
 export class PodResolver {
@@ -77,6 +78,152 @@ export class PodResolver {
       this.logger.error(e);
     }
     return null;
+  }
+
+  private async getDpPod(id: string, me: Account) {
+    try {
+      const dp = await this.dbService.prisma.dpPod.findUnique({
+        where: { id: id },
+        include: { from: true }
+      });
+      if (dp.content_type === "pod") {
+        const [pod, fav] = await Promise.all([
+          this.dbService.prisma.pod.findUnique({
+            where: { id: dp.content_id },
+            include: { from: true }
+          }),
+          this.dbService.pool[2].favorite.findUnique({
+            where: {
+              content_id_account_id: {
+                content_id: dp.content_id,
+                account_id: me.id
+              }
+            }
+          })
+        ]);
+        dp["pod"] = pod;
+        dp["pod"]["mypod"] = pod.from.id === me.id;
+        dp["pod"]["favorited"] = fav ? true : false;
+        dp["pod"]["encrypted"] = pod.password === null ? false : true;
+      } else {
+        const [pod, fav] = await Promise.all([
+          this.dbService.prisma.qpPod.findUnique({
+            where: { id: dp.content_id },
+            include: { from: true }
+          }),
+          this.dbService.pool[2].favorite.findUnique({
+            where: {
+              content_id_account_id: {
+                content_id: dp.content_id,
+                account_id: me.id
+              }
+            }
+          })
+        ]);
+        dp["qp"] = pod;
+        dp["qp"]["mypod"] = pod.from.id === me.id;
+        dp["qp"]["favorited"] = fav ? true : false;
+      }
+      return dp;
+    } catch (e) {
+      // this.logger.error(e);
+    }
+    return null;
+  }
+
+  private async getQpPod(id: string, me: Account) {
+    try {
+      const qp = await this.dbService.prisma.qpPod.findUnique({
+        where: { id: id },
+        include: { from: true }
+      });
+      const qpfav = await this.dbService.pool[0].favorite.findUnique({
+        where: {
+          content_id_account_id: {
+            content_id: qp.id,
+            account_id: me.id
+          }
+        }
+      });
+      qp["mypod"] = qp.from.id === me.id;
+      qp["favorited"] = qpfav ? true : false;
+      if (qp.content_type === "pod") {
+        const [pod, fav] = await Promise.all([
+          this.dbService.prisma.pod.findUnique({
+            where: { id: qp.content_id },
+            include: { from: true }
+          }),
+          this.dbService.pool[2].favorite.findUnique({
+            where: {
+              content_id_account_id: {
+                content_id: qp.content_id,
+                account_id: me.id
+              }
+            }
+          })
+        ]);
+        qp["pod"] = pod;
+        qp["pod"]["mypod"] = pod.from.id === me.id;
+        qp["pod"]["favorited"] = fav ? true : false;
+        qp["pod"]["encrypted"] = pod.password === null ? false : true;
+      } else {
+        const [pod, fav] = await Promise.all([
+          this.dbService.prisma.qpPod.findUnique({
+            where: { id: qp.content_id },
+            include: { from: true }
+          }),
+          this.dbService.pool[2].favorite.findUnique({
+            where: {
+              content_id_account_id: {
+                content_id: qp.content_id,
+                account_id: me.id
+              }
+            }
+          })
+        ]);
+        qp["qp"] = pod;
+        qp["qp"]["mypod"] = pod.from.id === me.id;
+        qp["qp"]["favorited"] = fav ? true : false;
+      }
+      return qp;
+    } catch (e) {
+      // this.logger.error(e);
+    }
+    return null;
+  }
+
+  private async getPodImpl(id: string, me: Account) {
+    try {
+      const [pod, fav] = await Promise.all([
+        this.dbService.prisma.pod.findUnique({ where: { id: id }, include: { from: true } }),
+        this.dbService.prisma.favorite.findUnique({
+          where: {
+            content_id_account_id: {
+              content_id: id,
+              account_id: me.id
+            }
+          }
+        })
+      ]);
+      pod["favorited"] = fav ? true : false;
+      pod["mypod"] = pod.account_id === me.id;
+      pod["encrypted"] = pod.password === null ? false : true;
+      return pod;
+    } catch (e) {
+      // this.logger.error(e);
+    }
+    return null;
+  }
+
+  @Query(() => HomeTimeline, { nullable: true })
+  async getPod(@SessionValidater() ctx, @Args("id", { type: () => String }) id: string) {
+    const me = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
+    const [pod, dp, qp] = await Promise.all([
+      this.getPodImpl(id, me),
+      this.getDpPod(id, me),
+      this.getQpPod(id, me)
+    ]);
+    return { pod: pod, dp: dp, qp: qp };
   }
 
   private async createPodImplWithPassword(
