@@ -1,10 +1,11 @@
-import { BTLDpPod, BTLPod, BTLQpPod } from "../../../@types/pod"
+import { BTLDpPod, BTLPod, BTLQpPod, BTLReplyPod } from "../../../@types/pod"
 import { BTL } from "../../../@types/htl"
 import { onUpdateFav, onUpdateUnFav } from "../ui/footer/fav"
 import { onUpdateRp } from "../ui/footer/rp"
 import { Reason, Context } from "./initializer"
+import { onUpdateReply } from "../ui/footer/reply"
 
-const updateTimeline = (r: Reason, pod: BTLPod | BTLQpPod) => {
+const updateTimeline = (r: Reason, pod: BTLPod | BTLQpPod | BTLReplyPod) => {
   switch (r) {
     case Reason.fav:
       onUpdateFav(pod)
@@ -15,6 +16,9 @@ const updateTimeline = (r: Reason, pod: BTLPod | BTLQpPod) => {
     case Reason.qp:
     case Reason.dp:
       onUpdateRp(pod)
+      break
+    case Reason.reply:
+      onUpdateReply(pod)
       break
     default:
       break
@@ -35,8 +39,8 @@ const updateDecryptedPod = (ctx: Context, content: BTLPod, inner_content: BTLPod
 
 const updateContent = (ctx: Context, r: Reason, tl: BTL[]) => {
   return tl.map((e) => {
-    const content = e.pod ?? e.qp
-    const inner_content = e.qp?.pod ?? e.qp?.qp ?? e.dp?.pod ?? e.dp?.qp
+    const content = e.pod ?? e.qp ?? e.reply
+    const inner_content = e.qp?.pod ?? e.qp?.qp ?? e.dp?.pod ?? e.dp?.qp ?? e.dp?.reply
     if (r === Reason.decryptPod) {
       updateDecryptedPod(ctx, content as BTLPod, inner_content as BTLPod)
     } else {
@@ -57,14 +61,14 @@ const rewriteContent = (ctx: Context, r: Reason, tl: BTL[]) => {
     case Reason.dp: {
       const p = ctx as BTLDpPod
       tl.unshift({ dp: p })
-      const id = p.pod?.id ?? (p.qp?.id as string)
+      const id = (p.pod?.id ?? p.qp?.id ?? p.reply?.id) as string
       updateContent(id, r, tl)
       break
     }
     case Reason.qp: {
       const p = ctx as BTLQpPod
       tl.unshift({ qp: p })
-      const id = p.pod?.id ?? (p.qp?.id as string)
+      const id = (p.pod?.id ?? p.qp?.id ?? p.reply?.id) as string
       updateContent(id, r, tl)
       break
     }

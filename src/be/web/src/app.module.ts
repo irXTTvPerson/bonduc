@@ -13,6 +13,8 @@ import { FavoriteResolver } from "./favorite/favorite.resolver";
 import { HTLResolver } from "./timeline/htl.resolver";
 import { DpResolver } from "./pod/dp.resolver";
 import { QpResolver } from "./pod/qp.resolver";
+import { ReplyResolver } from "./pod/reply.resolver";
+import { PodCommonResolver } from "./pod/common.resolver";
 
 @Module({
   imports: [
@@ -33,12 +35,14 @@ import { QpResolver } from "./pod/qp.resolver";
     PodResolver,
     DpResolver,
     QpResolver,
+    ReplyResolver,
     AccountResolver,
     FollowRequestResolver,
     FollowResolver,
     NotificationResolver,
     FavoriteResolver,
-    HTLResolver
+    HTLResolver,
+    PodCommonResolver
   ]
 })
 export class AppModule {}

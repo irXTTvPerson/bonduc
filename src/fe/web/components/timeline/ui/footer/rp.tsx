@@ -1,16 +1,17 @@
 import type { NextPage } from "next"
 import { GqlClient } from "../../../common/gql"
-import { DpPod, ContentType, BTLPod, BTLQpPod } from "../../../../@types/pod"
+import { DpPod, NormalPod } from "../../../../@types/pod"
 import styles from "../../../../styles/HTL.module.css"
 import { queryPostDp } from "../../query/dp"
 import { Dispatch, SetStateAction, useState } from "react"
-import { convertDpPodToBTLDpPod, OnSuccess, Reason } from "../../control/initializer"
+import { OnSuccess, Reason } from "../../control/initializer"
+import { convertDpPodToBTLDpPod } from "../../control/converter"
 import { Popup } from "../../htl"
-import PodEditor from "../../../pod/editor"
+import PodEditor, { PodEditorType } from "../../../pod/editor"
+import { getPodType } from "../../../common/type/check"
 
 type Props = {
-  pod: BTLPod
-  contentType: ContentType
+  pod: NormalPod
   onSuccess: OnSuccess
   popup: Popup
 }
@@ -20,7 +21,7 @@ enum State {
   hide
 }
 
-export const onUpdateRp = (pod: BTLPod | BTLQpPod) => {
+export const onUpdateRp = (pod: NormalPod) => {
   pod.rp_count += 1
 }
 
@@ -31,7 +32,7 @@ const postDp = (props: Props) => {
       {
         id: props.pod.id,
         v: props.pod.visibility,
-        type: props.contentType,
+        type: getPodType(props.pod),
         timeline_type: props.pod.timeline_type
       },
       queryPostDp
@@ -52,8 +53,7 @@ const showEditor = (props: Props) => {
   props.popup.open(
     <PodEditor
       pod={props.pod}
-      isQp={true}
-      contentType={props.contentType}
+      podType={PodEditorType.qp}
       onPostSuccess={(p) => {
         props.onSuccess(p, Reason.qp)
         props.popup.close()

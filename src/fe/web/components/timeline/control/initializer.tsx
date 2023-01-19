@@ -1,14 +1,16 @@
 import type { NextPage } from "next"
 import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import { GqlClient } from "../../../components/common/gql"
-import { QpPod, DpPod, Pod, BTLPod, BTLQpPod, QpPodInternal, BTLDpPod } from "../../../@types/pod"
+import { BTLPod, BTLQpPod, BTLDpPod, BTLReplyPod } from "../../../@types/pod"
 import { Timeline, BTL } from "../../../@types/htl"
 import PodArticle from "../ui/podArticle"
 import DpArticle from "../ui/dpArticle"
 import QpArticle from "../ui/qpArticle"
+import ReplyArticle from "../ui/replyArticle"
 import styles from "../../../styles/HTL.module.css"
 import { update } from "./updater"
 import { Popup } from "../htl"
+import { convert } from "./converter"
 
 type Props = {
   query: string
@@ -21,11 +23,11 @@ export enum Reason {
   dp,
   qp,
   pod,
-  decryptPod
+  decryptPod,
+  reply
 }
 
 export type Context = string | BTLPod | BTLQpPod | BTLDpPod | { id: string; body: string }
-
 export type OnSuccess = (ctx: Context, r: Reason) => void
 
 const fetch = async (query: string, onError: () => void) => {
@@ -43,10 +45,24 @@ export const buildUI = (e: BTL, onSuccess: OnSuccess, popup: Popup, index: numbe
     return <DpArticle dp={e.dp as BTLDpPod} onSuccess={onSuccess} popup={popup} key={index} />
   else if (e.qp)
     return <QpArticle qp={e.qp as BTLQpPod} onSuccess={onSuccess} popup={popup} key={index} />
-  else return <article className={styles.article}>err</article>
+  else if (e.reply)
+    return (
+      <ReplyArticle
+        reply={e.reply as BTLReplyPod}
+        onSuccess={onSuccess}
+        popup={popup}
+        key={index}
+      />
+    )
+  else
+    return (
+      <article className={styles.article} key={index}>
+        err
+      </article>
+    )
 }
 
-const buildTimeline = (
+export const buildTimeline = (
   t: BTL[],
   onSuccess: OnSuccess,
   setContent: Dispatch<SetStateAction<JSX.Element[]>>,
@@ -59,92 +75,6 @@ const buildTimeline = (
     result.push(ui)
   })
   setContent(result)
-}
-
-export const convertPodToBTLPod = (p: Pod | undefined): BTLPod | undefined => {
-  if (!p) return undefined
-  return {
-    ...p,
-    context: {
-      decrypted: false
-    }
-  }
-}
-
-export const convertQpPodToBTLQpPod = (p: QpPod | undefined): BTLQpPod | undefined => {
-  if (!p) return undefined
-  if (p.pod) {
-    const ret: BTLQpPod = {
-      ...p,
-      pod: convertPodToBTLPod(p.pod),
-      qp: undefined,
-      context: {}
-    }
-    delete ret.qp
-    return ret
-  } else {
-    const ret: BTLQpPod = {
-      ...p,
-      pod: undefined,
-      qp: { ...(p.qp as QpPodInternal), context: {} },
-      context: {}
-    }
-    delete ret.pod
-    if (!p.qp) delete ret.qp
-    return ret
-  }
-}
-
-export const convertDpPodToBTLDpPod = (dp: DpPod): BTLDpPod => {
-  return {
-    ...dp,
-    pod: convertPodToBTLPod(dp.pod),
-    qp: convertQpPodToBTLQpPod(dp.qp),
-    context: {}
-  }
-}
-
-const convertDpPodToBTL = (dp: DpPod) => {
-  const ret: BTL = {
-    dp: {
-      ...dp,
-      pod: convertPodToBTLPod(dp.pod),
-      qp: convertQpPodToBTLQpPod(dp.qp),
-      context: {}
-    }
-  }
-  if (!ret.dp?.pod) delete ret.dp?.pod
-  if (!ret.dp?.qp) delete ret.dp?.qp
-  return ret
-}
-
-const convertQpPodToBTL = (qp: QpPod) => {
-  const ret: BTL = {
-    qp: {
-      ...(convertQpPodToBTLQpPod(qp) as BTLQpPod),
-      pod: convertPodToBTLPod(qp.pod),
-      qp: convertQpPodToBTLQpPod(qp.qp),
-      context: {}
-    }
-  }
-  if (!ret.qp?.pod) delete ret.qp?.pod
-  if (!ret.qp?.qp) delete ret.qp?.qp
-  return ret
-}
-
-export const convert = (t: Timeline[]): BTL[] => {
-  return t.map((e) => {
-    if (e.pod) {
-      const ret: BTL = {
-        pod: convertPodToBTLPod(e.pod)
-      }
-      return ret
-    } else if (e.dp) {
-      return convertDpPodToBTL(e.dp)
-    } else if (e.qp) {
-      return convertQpPodToBTL(e.qp)
-    }
-  }) as BTL[]
 }
 
 const Initializer: NextPage<Props> = (props: Props) => {

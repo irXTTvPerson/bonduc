@@ -1,4 +1,4 @@
-import { podContent, qpPodContent } from "./home"
+import { podContent, qpPodContent, replyPod } from "./home"
 
 export const queryDp = `
 {
@@ -13,6 +13,7 @@ export const queryDp = `
   }
   pod ${podContent}
   qp ${qpPodContent}
+  reply {${replyPod}}
 }
 `
 

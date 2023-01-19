@@ -8,13 +8,20 @@ import {
   BTLPod,
   BTLQpPod,
   QpPod,
-  ContentType,
-  TimelineType
+  TimelineType,
+  BTLReplyPod,
+  ReplyPod,
+  NormalPod
 } from "../../@types/pod"
 import PodElement from "../timeline/ui/pod/pod"
 import { queryQp } from "../timeline/query/qp"
-import { queryPod } from "../timeline/query/pod"
-import { convertPodToBTLPod, convertQpPodToBTLQpPod } from "../timeline/control/initializer"
+import { queryPod, queryReplyPod } from "../timeline/query/pod"
+import {
+  convertPodToBTLPod,
+  convertQpPodToBTLQpPod,
+  convertReplyPodToBTLReplyPod
+} from "../timeline/control/converter"
+import { getPodType } from "../common/type/check"
 
 type Context = {
   props: Props
@@ -33,12 +40,16 @@ type Context = {
   }
 }
 
-type OnSuccess = (p: BTLQpPod | BTLPod) => void
+type OnSuccess = (p: BTLQpPod | BTLPod | BTLReplyPod) => void
+export enum PodEditorType {
+  pod,
+  qp,
+  reply
+}
 
 export type Props = {
-  isQp: boolean
-  contentType?: ContentType
-  pod?: BTLPod
+  podType: PodEditorType
+  pod?: NormalPod
   onPostSuccess?: OnSuccess
   onPostFail?: () => void
 }
@@ -50,7 +61,7 @@ const postPodViaQp = async (context: Context) => {
       id: context.props.pod?.id,
       body: context.formData.body,
       v: context.formData.visibility,
-      type: context.props.contentType,
+      type: getPodType(context.props.pod as NormalPod),
       timeline_type: context.formData.timelineType
     },
     queryQp
@@ -90,13 +101,46 @@ const postPodViaPod = async (context: Context) => {
   }
 }
 
+const postReplyPod = async (context: Context) => {
+  const gql = new GqlClient()
+  await gql.fetch(
+    {
+      body: context.formData.body,
+      v: context.formData.visibility,
+      timeline_type: context.formData.timelineType,
+      reply_to_id: context.props.pod?.id,
+      reply_to_type: getPodType(context.props.pod as NormalPod)
+    },
+    queryReplyPod
+  )
+
+  const res = gql.res.createReplyPod as ReplyPod | null
+  if (res) {
+    context.setMessage("post success")
+    const pod = convertReplyPodToBTLReplyPod(res) as BTLReplyPod
+    if (context.props.onPostSuccess) context.props.onPostSuccess(pod)
+  } else {
+    context.setMessage("post failed")
+    if (context.props.onPostFail) context.props.onPostFail()
+  }
+}
+
 const postPod = (context: Context) => {
   ;(async () => {
     context.setMessage("podding...")
-    if (context.props.isQp) {
-      await postPodViaQp(context)
-    } else {
-      await postPodViaPod(context)
+    switch (context.props.podType) {
+      case PodEditorType.qp:
+        await postPodViaQp(context)
+        break
+      case PodEditorType.pod:
+        await postPodViaPod(context)
+        break
+      case PodEditorType.reply:
+        await postReplyPod(context)
+        break
+      default:
+        context.setMessage("error: pod editor type unknown")
+        break
     }
   })()
 }
@@ -138,23 +182,30 @@ const PodEditor: NextPage<Props> = (props: Props) => {
     }
   }
 
+  const refer =
+    props.pod && props.podType === PodEditorType.qp ? (
+      <>
+        このpodをQPします :
+        <span className={styles.disp_pod}>
+          <PodElement pod={props.pod} onSuccess={() => {}} />
+        </span>
+      </>
+    ) : props.pod && props.podType === PodEditorType.reply ? (
+      <>
+        このpodにreplyします :
+        <span className={styles.disp_pod}>
+          <PodElement pod={props.pod} onSuccess={() => {}} />
+        </span>
+      </>
+    ) : (
+      <></>
+    )
+
   return (
     <div className={styles.container}>
-      {props.pod && props.isQp ? (
-        <>
-          このpodをQPします :
-          <span className={styles.disp_pod}>
-            <PodElement pod={props.pod} onSuccess={() => {}} />
-          </span>
-        </>
-      ) : (
-        <></>
-      )}
+      {refer}
       <div>
-        <textarea
-          className={styles.textarea}
-          onChange={(e) => context.setBody(e.target.value)}
-        ></textarea>
+        <textarea className={styles.textarea} onChange={(e) => context.setBody(e.target.value)} />
       </div>
       公開範囲:
       <select
@@ -179,7 +230,7 @@ const PodEditor: NextPage<Props> = (props: Props) => {
         <option value={"local"}>ローカル</option>
         <option value={"global"}>グローバル</option>
       </select>
-      {props.isQp === false ? (
+      {props.podType === PodEditorType.pod ? (
         <>
           🔐
           <input
