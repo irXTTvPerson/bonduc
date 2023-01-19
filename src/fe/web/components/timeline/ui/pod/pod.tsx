@@ -1,5 +1,5 @@
 import type { NextPage } from "next"
-import { BTLPod, PodVisibility, TimelineType } from "../../../../@types/pod"
+import { NormalPod, PodVisibility, TimelineType } from "../../../../@types/pod"
 import styles from "../../../../styles/HTL.module.css"
 import Link from "next/link"
 import Image from "next/image"
@@ -9,9 +9,10 @@ import { queryGetDecryptedPodBody } from "../../query/pod"
 import { useState } from "react"
 import { ResultObject } from "../../../../@types/result"
 import { Reason } from "../../control/initializer"
+import { isPod } from "../../../common/type/check"
 
 type Props = {
-  pod: BTLPod
+  pod: NormalPod
   onSuccess: OnSuccess
 }
 
@@ -65,10 +66,10 @@ const getDecryptedPod = (props: Props, password: string) => {
 const PodElement: NextPage<Props> = (props: Props) => {
   const [password, setPassword] = useState("")
   const pod = props.pod
-  const show_form = pod.context.decrypted === false
+  const show_form = isPod(pod) ? pod.context.decrypted === false : false
 
   let body: JSX.Element
-  if (pod.encrypted && show_form) {
+  if (isPod(pod) && pod.encrypted && show_form) {
     body = (
       <>
         <div>

@@ -1,6 +1,6 @@
 import type { NextPage } from "next"
 import PodElement from "./pod/pod"
-import { BTLQpPod, BTLPod } from "../../../@types/pod"
+import { BTLQpPod } from "../../../@types/pod"
 import styles from "../../../styles/HTL.module.css"
 import { OnSuccess } from "../control/initializer"
 import { Popup } from "../htl"
@@ -17,25 +17,17 @@ const renderQpFrom = (uri: string, name: string) => {
   return (
     <span className={styles.dp_disp}>
       <Link href={uri} target="_blank">
-        {name} さんがQPしました ↰
+        {name}
       </Link>
+      さんがQPしました ↰
     </span>
   )
 }
 
-export const renderQpContent = (
-  qp: BTLQpPod,
-  onSuccess: OnSuccess,
-  popup: Popup,
-  isQpInDp: boolean
-) => {
-  const pod = qp as BTLPod
-  const content = qp.pod ?? qp.qp
-  const from = (
-    <Link className={styles.dp_disp} href={`/pod/${qp.id}`} target="_blank">
-      QP from ...
-    </Link>
-  )
+const renderQpContent = (qp: BTLQpPod, onSuccess: OnSuccess, popup: Popup) => {
+  const pod = qp
+  const content = qp.pod ?? qp.qp ?? qp.reply
+  const from = <span className={styles.dp_disp}>QP from ...</span>
 
   let quote: JSX.Element
   if (content) {
@@ -43,26 +35,24 @@ export const renderQpContent = (
       quote = (
         <>
           {renderQpFrom(qp.qp.from.account_unique_uri, qp.qp.from.screen_name)}
-          <PodElement pod={content as BTLPod} onSuccess={onSuccess} />
+          <PodElement pod={content} onSuccess={onSuccess} />
           <div className={styles.rp_border}>{from}</div>
         </>
       )
     } else {
-      quote = <PodElement pod={content as BTLPod} onSuccess={onSuccess} />
+      console.log(content)
+      quote = <PodElement pod={content} onSuccess={onSuccess} />
     }
   } else {
-    if (isQpInDp) {
-      quote = from
-    } else {
-      quote = <span className={styles.dp_disp}>*** the pod was deleted ***</span>
-    }
+    quote = <span className={styles.dp_disp}>*** the pod was deleted ***</span>
   }
   return (
     <>
       {renderQpFrom(pod.from.account_unique_uri, pod.from.screen_name)}
       <PodElement pod={pod} onSuccess={onSuccess} />
+      {renderFooterButton(pod, onSuccess, popup)}
+      <span className={styles.dp_disp}>quote:</span>
       <div className={styles.rp_border}>{quote}</div>
-      {renderFooterButton(pod, "qp", onSuccess, popup)}
     </>
   )
 }
@@ -70,7 +60,7 @@ export const renderQpContent = (
 const QpArticle: NextPage<Props> = (props: Props) => {
   return (
     <article className={styles.article}>
-      {renderQpContent(props.qp, props.onSuccess, props.popup, false)}
+      {renderQpContent(props.qp, props.onSuccess, props.popup)}
     </article>
   )
 }

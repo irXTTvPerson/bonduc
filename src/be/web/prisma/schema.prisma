@@ -30,10 +30,10 @@ model Account {
   password            String
   ip_address          String[]
   screen_name         String
-  inbox               String
-  outbox              String
-  follower_uri        String
-  following_uri       String
+  inbox               String                @unique
+  outbox              String                @unique
+  follower_uri        String                @unique
+  following_uri       String                @unique
   identifier_name     String                @unique
   header_uri          String                @default("/img/default_header.png")
   icon_uri            String                @default("/img/default_icon.png")
@@ -51,6 +51,8 @@ model Account {
   NotifyFollowed      NotifyFollowed[]
   Follow              Follow[]
   QpPod               QpPod[]
+  ReplyPod            ReplyPod[]
+  NotifyReplyed       NotifyReplyed[]
 }
 
 enum PodVisibility {
@@ -73,11 +75,19 @@ enum TimelineType {
 enum DpContentType {
   pod
   qp
+  reply
 }
 
 enum QpContentType {
   pod
   qp
+  reply
+}
+
+enum ReplyToType {
+  pod
+  qp
+  reply
 }
 
 model Pod {
@@ -94,6 +104,7 @@ model Pod {
   visibility     PodVisibility @default(login)
   password       Json?
   timeline_type  TimelineType  @default(global)
+  reply_count    Int           @default(0)
 }
 
 model DpPod {
@@ -126,8 +137,28 @@ model QpPod {
   content_id     String // podかqpのid
   content_type   QpContentType
   timeline_type  TimelineType  @default(global)
+  reply_count    Int           @default(0)
 
   @@unique([account_id, content_id, content_type])
+}
+
+// dpとqpは１つのpodにつきそれぞれ１回ずつしかできないがreplyは何度でもできるので複合キーはない
+model ReplyPod {
+  id             String        @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at     DateTime      @default(now())
+  updated_at     DateTime?     @updatedAt
+  to             String[]
+  cc             String[]
+  from           Account       @relation(fields: [account_id], references: [id])
+  account_id     String
+  body           String
+  favorite_count Int           @default(0)
+  rp_count       Int           @default(0)
+  visibility     PodVisibility @default(login)
+  reply_to_id    String // podかqpかreplyPodのid
+  reply_to_type  ReplyToType
+  timeline_type  TimelineType  @default(global)
+  reply_count    Int           @default(0)
 }
 
 enum NotifyType {
@@ -178,6 +209,15 @@ model NotifyFollowed {
   @@unique([from_account_id, to_account_id])
 }
 
+model NotifyReplyed {
+  id              String   @id @unique @default(dbgenerated("gen_random_uuid()"))
+  from_account_id String
+  created_at      DateTime @default(now())
+  to_account_id   String
+  opened          Boolean  @default(false)
+  from            Account  @relation(fields: [from_account_id], references: [id])
+}
+
 model Follow {
   from_account_id String
   from            Account  @relation(fields: [from_account_id], references: [id])
@@ -190,7 +230,7 @@ model Follow {
 model Favorite {
   created_at DateTime @default(now())
   from       Account  @relation(fields: [account_id], references: [id])
-  content_id String // podかqpのid
+  content_id String // podかqpかreplyのid
   account_id String
 
   @@unique([content_id, account_id])

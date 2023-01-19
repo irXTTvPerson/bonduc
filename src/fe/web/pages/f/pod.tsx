@@ -1,4 +1,4 @@
-import PodEditor from "../../components/pod/editor"
+import PodEditor, { PodEditorType } from "../../components/pod/editor"
 import type { NextPage, GetServerSideProps } from "next"
 
 type Props = {
@@ -14,7 +14,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
 }
 
 const PostPod: NextPage<Props> = (props: Props) => {
-  return <>{props.session ? <PodEditor isQp={false} /> : "need login"}</>
+  return <>{props.session ? <PodEditor podType={PodEditorType.pod} /> : "need login"}</>
 }
 
 export default PostPod

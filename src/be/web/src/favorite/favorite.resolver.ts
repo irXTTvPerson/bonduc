@@ -21,41 +21,29 @@ export class FavoriteResolver {
     const res = new ResultObject();
     const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      if (content_type === "pod") {
-        const pod = await this.dbService.prisma.pod.findUnique({
-          select: { favorite_count: true },
-          where: { id: content_id }
-        });
-        await this.dbService.prisma.$transaction([
-          this.dbService.prisma.favorite.create({
-            data: {
-              content_id: content_id,
-              account_id: account.id
-            }
-          }),
-          this.dbService.prisma.pod.update({
-            where: { id: content_id },
-            data: { favorite_count: pod.favorite_count + 1 }
-          })
-        ]);
-      } else if (content_type === "qp") {
-        const pod = await this.dbService.prisma.qpPod.findUnique({
-          select: { favorite_count: true },
-          where: { id: content_id }
-        });
-        await this.dbService.prisma.$transaction([
-          this.dbService.prisma.favorite.create({
-            data: {
-              content_id: content_id,
-              account_id: account.id
-            }
-          }),
-          this.dbService.prisma.qpPod.update({
-            where: { id: content_id },
-            data: { favorite_count: pod.favorite_count + 1 }
-          })
-        ]);
-      }
+      const prisma: any =
+        content_type === "pod"
+          ? this.dbService.prisma.pod
+          : content_type === "qp"
+          ? this.dbService.prisma.qpPod
+          : this.dbService.prisma.replyPod;
+
+      const pod = await prisma.findUnique({
+        select: { favorite_count: true },
+        where: { id: content_id }
+      });
+      await this.dbService.prisma.$transaction([
+        this.dbService.prisma.favorite.create({
+          data: {
+            content_id: content_id,
+            account_id: account.id
+          }
+        }),
+        prisma.update({
+          where: { id: content_id },
+          data: { favorite_count: pod.favorite_count + 1 }
+        })
+      ]);
       res.value = true;
     } catch (e) {
       this.logger.error(e);
@@ -74,45 +62,31 @@ export class FavoriteResolver {
     const res = new ResultObject();
     const account = await accountValidator(ctx.req, ctx.token, this.dbService.redis);
     try {
-      if (content_type === "pod") {
-        const pod = await this.dbService.prisma.pod.findUnique({
-          select: { favorite_count: true },
-          where: { id: content_id }
-        });
-        await this.dbService.prisma.$transaction([
-          this.dbService.prisma.favorite.delete({
-            where: {
-              content_id_account_id: {
-                content_id: content_id,
-                account_id: account.id
-              }
+      const prisma: any =
+        content_type === "pod"
+          ? this.dbService.prisma.pod
+          : content_type === "qp"
+          ? this.dbService.prisma.qpPod
+          : this.dbService.prisma.replyPod;
+
+      const pod = await prisma.findUnique({
+        select: { favorite_count: true },
+        where: { id: content_id }
+      });
+      await this.dbService.prisma.$transaction([
+        this.dbService.prisma.favorite.delete({
+          where: {
+            content_id_account_id: {
+              content_id: content_id,
+              account_id: account.id
             }
-          }),
-          this.dbService.prisma.pod.update({
-            where: { id: content_id },
-            data: { favorite_count: pod.favorite_count - 1 }
-          })
-        ]);
-      } else if (content_type === "qp") {
-        const pod = await this.dbService.prisma.qpPod.findUnique({
-          select: { favorite_count: true },
-          where: { id: content_id }
-        });
-        await this.dbService.prisma.$transaction([
-          this.dbService.prisma.favorite.delete({
-            where: {
-              content_id_account_id: {
-                content_id: content_id,
-                account_id: account.id
-              }
-            }
-          }),
-          this.dbService.prisma.qpPod.update({
-            where: { id: content_id },
-            data: { favorite_count: pod.favorite_count - 1 }
-          })
-        ]);
-      }
+          }
+        }),
+        prisma.update({
+          where: { id: content_id },
+          data: { favorite_count: pod.favorite_count - 1 }
+        })
+      ]);
       res.value = true;
     } catch (e) {
       this.logger.error(e);
