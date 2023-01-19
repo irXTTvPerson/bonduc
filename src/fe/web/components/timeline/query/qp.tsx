@@ -1,5 +1,4 @@
-import { podContent, qpPodContent } from "./home"
-import { replyPod } from "./pod"
+import { podContent, qpPodContent, replyPod } from "./home"
 
 export const queryQp = `
 mutation ($id: String!, $body: String!, $v: PodVisibility!, $type: String!, $timeline_type: TimelineType!) {
