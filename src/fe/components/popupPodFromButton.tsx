@@ -37,7 +37,6 @@ const PopupPodFormButton: NextPage<Props> = (props: Props) => {
         }}
         onFail={(e) => {
           props.onFail(e)
-          closePopup()
         }}
       />
     </div>

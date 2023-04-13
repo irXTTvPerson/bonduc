@@ -245,6 +245,9 @@ const PodForm: NextPage<Props> = (props: Props) => {
                 mode: "cors",
                 credentials: "include"
               })
+              if (!res.ok) {
+                throw new Error(res.statusText)
+              }
               setState(res.statusText)
               props.onSuccess(await res.json())
             } catch (e) {
