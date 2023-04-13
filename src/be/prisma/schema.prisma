@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id              String    @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at      DateTime  @default(now())
+  updated_at      DateTime? @updatedAt
+  email           String    @unique
+  password        String
+  ip_address      String[]
+  screen_name     String
+  identifier_name String    @unique
+  header_uri      String    @default("/img/default_header.png")
+  icon_uri        String    @default("/img/default_icon.png")
+  unique_uri      String    @unique
+  bio             String?
+  Pod             Pod[]
+  Media           Media[]
+}
+
+enum PodVisibility {
+  anyone
+  // login
+  // follower
+  // mutual // mutual following account only
+  // selected // selected accont only
+  myself // just myself only
+}
+
+enum TimelineType {
+  home
+  local
+  social
+  global
+}
+
+enum PodType {
+  pod
+  quote
+  duplicate
+  reply
+  encrypted
+  partial // 部分伏字
+}
+
+model Pod {
+  id             String        @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at     DateTime      @default(now())
+  expire_at      DateTime? // 指定時間に消える
+  reveal_at      DateTime? // 指定時間に表示される
+  account_id     String
+  body           Json
+  has_media      Boolean       
+  nsfw           Boolean       
+  read_more      Boolean       
+  root_thread_id String? // リプに対してリプが連なった時の出元 podに対するネスト1のリプidがこれになる
+  visibility     PodVisibility 
+  timeline_type  TimelineType  
+  pod_type       PodType       
+  account        Account       @relation(fields: [account_id], references: [id])
+  media          Media[]
+}
+
+enum MediaType {
+  image
+  video
+  audio
+  other
+}
+
+model Media {
+  id         String    @id @unique @default(dbgenerated("gen_random_uuid()"))
+  created_at DateTime  @default(now())
+  expire_at  DateTime? // 指定時間に消える
+  account_id String
+  pod_id     String
+  url        String    @unique
+  type       MediaType @default(image)
+  account    Account   @relation(fields: [account_id], references: [id])
+  pod        Pod       @relation(fields: [pod_id], references: [id])
+}
