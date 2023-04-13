@@ -1,5 +1,5 @@
-import { NextPage } from "next";
-import PopupPodFormButton from "@/components/popupPodFromButton";
+import { NextPage } from "next"
+import PopupPodFormButton from "@/components/popupPodFromButton"
 
 const Home: NextPage = () => {
   return (

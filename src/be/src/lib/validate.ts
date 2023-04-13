@@ -63,3 +63,11 @@ export const deleteUnrevealedBody = (pod: any, showOriginalBodyOfPartial: boolea
 
   return pod;
 }
+
+export const deleteUnrevealedAccount = (account: Account) => {
+  delete account.id;
+  delete account.email;
+  delete account.password;
+  delete account.ip_address;
+  return account;
+}

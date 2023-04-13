@@ -1,0 +1,20 @@
+/* for PC */
+@media screen and (orientation: landscape) {
+  .article {
+    display: flex;
+    width: 100%;
+  }
+
+  .status {
+    display: flex;
+    align-items: center;
+  }
+  
+  .timestamp {
+    font-size: 75%;
+    margin-left: 1rem;
+  }
+
+  .body {
+  }
+}
