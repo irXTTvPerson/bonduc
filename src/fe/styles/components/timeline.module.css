@@ -2,19 +2,16 @@
 @media screen and (orientation: landscape) {
   .article {
     display: flex;
-    width: 100%;
-  }
-
-  .status {
-    display: flex;
-    align-items: center;
+    justify-content: flex-start;
+    align-items: flex-start;
   }
   
   .timestamp {
     font-size: 75%;
-    margin-left: 1rem;
   }
 
   .body {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
   }
 }

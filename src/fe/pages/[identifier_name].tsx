@@ -46,13 +46,11 @@ const AccountPage: NextPage<Props> = (props: Props) => {
       <article id={pod.id} className={css.article}>
         <Image src={pod.account.icon_uri} alt="icon" width={64} height={64} className={css.icon} />
         <div>
-          <div className={css.status}>
-            <div>
-              {pod.account.screen_name} @{pod.account.identifier_name}
-            </div>
-            <div className={css.timestamp}>
-              {pod.created_at}
-            </div>
+          <div className={css.timestamp}>
+            {pod.created_at}
+          </div>
+          <div>
+            {pod.account.screen_name} @{pod.account.identifier_name}
           </div>
           <div className={css.body}>
             {pod.body.body}
